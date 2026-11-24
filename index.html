@@ -272,10 +272,7 @@ body.chat #chat-slot { display: flex; }
   padding: 0 14px; font-size: 13px; color: var(--ink-2); z-index: 20;
 }
 #bar button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-#btn-timer { font-variant-numeric: tabular-nums; margin-left: 10px; }
-#btn-timer.run { border-color: var(--ink); }
-#btn-timer.warn { background: var(--tape); }
-#btn-timer.over { background: var(--s-rta); color: #fff; border-color: var(--s-rta); }
+#timer { margin-left: 12px; font-weight: 700; color: var(--ink); }
 #bar button { font-size: 13px; padding: 3px 10px; border-width: 1.5px; background: rgba(255,255,255,.85); }
 #progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--ink); transition: width .25s; z-index: 20; }
 #notes {
@@ -762,7 +759,7 @@ aside.notes { display: none; }
 <div id="notes" role="region" aria-label="발표자 노트"></div>
 <div id="chat-slot" aria-hidden="true"><div><span>여기에 채팅창을 두세요<br><span id="chat-w"></span><br>C: 끄기 · [ ]: 폭 조절</span></div></div>
 <div id="bar">
-  <span><span id="bar-title"></span> <button id="btn-timer" title="T: 시작/멈춤 · Shift+T: 0으로">타이머</button></span>
+  <span><span id="bar-title"></span> <span id="timer" class="num" title="페이지를 연 뒤 지난 시간"></span></span>
   <span>
     <button id="btn-chat" title="C 키 · [ ] 키로 폭 조절" aria-pressed="false">채팅창 자리</button>
     <button id="btn-notes" title="N 키">노트</button>
@@ -1284,27 +1281,12 @@ aside.notes { display: none; }
   })();
 
 
-  /* ---------- talk timer: T start/pause, Shift+T reset; target minutes via ?min=30 ---------- */
-  var timer = (function () {
-    var btn = document.getElementById("btn-timer");
-    var m = /[?&]min=(\d+)/.exec(location.search), target = (m ? +m[1] : 30) * 60;
-    var st = { acc: 0, since: null };
-    try { var sv = JSON.parse(sessionStorage.getItem("w2t-timer") || "null"); if (sv) st = sv; } catch (e) {}
-    function now() { return st.acc + (st.since ? (Date.now() - st.since) / 1000 : 0); }
-    function save() { try { sessionStorage.setItem("w2t-timer", JSON.stringify(st)); } catch (e) {} }
-    function mmss(t) { t = Math.floor(t); return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); }
-    function draw() {
-      var t = now();
-      btn.textContent = (st.since ? "" : "▶ ") + mmss(t) + " / " + Math.round(target / 60) + "분";
-      btn.classList.toggle("run", !!st.since);
-      btn.classList.toggle("warn", t >= target - 300 && t < target);
-      btn.classList.toggle("over", t >= target);
-    }
-    function toggle() { if (st.since) { st.acc = now(); st.since = null; } else st.since = Date.now(); save(); draw(); }
-    function reset() { st = { acc: 0, since: null }; save(); draw(); }
-    btn.addEventListener("click", function (e) { if (e.shiftKey) reset(); else toggle(); });
-    setInterval(draw, 500); draw();
-    return { toggle: toggle, reset: reset };
+  /* ---------- elapsed time since the page was opened (survives refresh within the tab) ---------- */
+  (function () {
+    var el = document.getElementById("timer"), t0;
+    try { t0 = +sessionStorage.getItem("w2t-t0") || 0; if (!t0) { t0 = Date.now(); sessionStorage.setItem("w2t-t0", t0); } } catch (e) { t0 = Date.now(); }
+    function draw() { var t = Math.floor((Date.now() - t0) / 1000); el.textContent = "소요 " + String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); }
+    setInterval(draw, 1000); draw();
   })();
   /* ---------- deck navigation ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
@@ -1397,8 +1379,6 @@ aside.notes { display: none; }
     else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
     else if (e.key === "f" || e.key === "F") toggleFull();
     else if (e.key === "c" || e.key === "C") setChat({ on: !chat.on });
-    else if (e.key === "T") timer.reset();
-    else if (e.key === "t") timer.toggle();
     else if (e.key === "[" && chat.on) setChat({ ratio: chat.ratio - 0.03 });
     else if (e.key === "]" && chat.on) setChat({ ratio: chat.ratio + 0.03 });
   });
