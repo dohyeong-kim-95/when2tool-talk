@@ -54,6 +54,24 @@ body {
   display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
   font-size: 13px; color: var(--muted); padding-top: 14px;
 }
+.footnote { font-size: 14px; line-height: 1.5; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
+sup.fn { font-family: var(--body); font-size: 0.42em; vertical-align: 1.1em; margin-left: 4px; color: var(--ink-2); }
+.nw { white-space: nowrap; }
+button.jump { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
+.gloss { display: flex; align-items: center; gap: 16px; margin-top: 40px; padding: 14px 18px; background: #f3f4f7; border-radius: 10px; }
+.gloss p { font-size: 18px; }
+.strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.cell { border: 2px solid var(--line); border-radius: 10px; padding: 12px 4px 8px; text-align: center; cursor: pointer; background: #f3f4f7; font: inherit; color: var(--ink); }
+.cell b { display: block; font-size: 19px; }
+.cell span { display: block; font-size: 14px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.cell.pos { background: var(--tape); border-color: var(--ink); }
+.cell.flip { outline: 3px dashed var(--s-rta); outline-offset: 3px; }
+.axis { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin-top: 8px; }
+.scale { position: relative; height: 44px; margin-top: 34px; border-top: 2px solid var(--ink-2); }
+.scale .band { position: absolute; top: -8px; height: 14px; background: var(--s-probe); opacity: .35; border-radius: 3px; }
+.scale .tick { position: absolute; top: 6px; transform: translateX(-50%); font-size: 13px; color: var(--muted); white-space: nowrap; }
+.scale .pin { position: absolute; top: -13px; width: 4px; height: 24px; background: var(--ink); transform: translateX(-50%); transition: left .3s; border-radius: 2px; }
+.scale .pinlbl { position: absolute; top: -40px; transform: translateX(-50%); font-size: 14px; font-weight: 700; white-space: nowrap; transition: left .3s; }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
 
 h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
@@ -328,7 +346,7 @@ aside.notes { display: none; }
 <!-- 6 · Reason-then-Act -->
 <section class="slide" data-title="생각하고 행동하기">
   <div class="body">
-    <h2>시도 2: "먼저 생각해 보고 행동해"</h2>
+    <h2>시도 2: "먼저 생각해 보고 행동해"<sup class="fn">1</sup></h2>
     <div class="row" style="flex:1">
       <div class="col">
         <div class="chat">
@@ -351,7 +369,8 @@ aside.notes { display: none; }
       </div>
     </div>
   </div>
-  <div class="foot"><span class="src">§3.2 Finding 3, Table 8 (지시 없음 기준, Prompt-only → Reason-then-Act)</span><span class="pg"></span></div>
+  <p class="footnote"><sup>1</sup> 논문의 Reason-then-Act baseline은 ReAct와 Reflexion의 "생각한 뒤 행동하기" 방식에서 착안했다 (§3.1).<br>ReAct: S. Yao et al., "ReAct: Synergizing Reasoning and Acting in Language Models", ICLR 2023 (arXiv 2210.03629) · Reflexion: N. Shinn et al., NeurIPS 2023</p>
+  <div class="foot"><span class="src">§3.1, §3.2 Finding 3, Table 8 (지시 없음 기준, Prompt-only → Reason-then-Act)</span><span class="pg"></span></div>
   <aside class="notes">
     <b>Finding 3</b> ReAct, Reflexion 류의 think-before-act. 포인트: 말로는 완벽하게 계획하는데 행동을 안 한다. 다음 장으로 넘어가는 질문을 여기서 던진다.
   </aside>
@@ -394,6 +413,10 @@ aside.notes { display: none; }
       <div class="stat"><div class="n">94,720</div><div class="l">Qwen3-4B의 probe 입력 차원<br>(37 레이어 × 2,560)</div></div>
       <div class="stat"><div class="n">0.7ms</div><div class="l">추가 지연 상한 (6개 모델).<br>추가 forward pass는 없다</div></div>
     </div>
+    <div class="gloss">
+      <p><b>AUROC</b>: 도구가 필요한 문제와 아닌 문제를 probe가 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
+      <button class="jump" data-goto="A1">자세히 (부록 A1)</button>
+    </div>
   </div>
   <div class="foot"><span class="src">§4 Setup, §5.1 Step 1, Table 15, Table 17</span><span class="pg"></span></div>
   <aside class="notes">
@@ -413,6 +436,7 @@ aside.notes { display: none; }
         <div class="card">
           <h3>AUROC 읽는 법</h3>
           <p>"필요" 문제 하나와 "불필요" 문제 하나를 아무렇게나 뽑았을 때, probe가 "필요" 쪽에 더 높은 점수를 줄 확률. 0.5는 동전 던지기, 1.0은 완벽.</p>
+          <p style="margin-top:8px"><button class="jump" data-goto="A1">직접 해 보기 (부록 A1)</button></p>
         </div>
         <div class="card" style="border-color:var(--ink)">
           <h3>생각하라고 하면 무너진 Llama도</h3>
@@ -573,6 +597,42 @@ aside.notes { display: none; }
   </div>
   <div class="foot"><span></span><span class="pg"></span></div>
   <aside class="notes">한 줄 요약을 읽고 Q&amp;A.</aside>
+</section>
+
+<!-- A1 · AUROC appendix -->
+<section class="slide" data-title="부록 A1. AUROC" data-appendix="A1">
+  <div class="body">
+    <h2>부록 A1. AUROC: 줄을 얼마나 잘 세우나</h2>
+    <div class="row" style="flex:1; gap:48px">
+      <div class="col" style="flex:1.5; gap:12px">
+        <p class="small">테스트 문제 8개를 probe의 p(도구 필요 확률)가 낮은 순으로 세우고, 실제 라벨을 붙였다. 칸을 누르면 라벨이 바뀐다.</p>
+        <div class="strip" id="auc-strip"></div>
+        <div class="axis"><span>← p 낮음: "혼자 풀 수 있을 것"</span><span>p 높음: "도구 필요" →</span></div>
+        <div class="btns" style="margin-top:10px">
+          <button data-preset="paper" aria-pressed="true">논문 수준</button>
+          <button data-preset="perfect">완벽</button>
+          <button data-preset="random">동전 던지기</button>
+        </div>
+        <div class="scale" id="auc-scale" aria-hidden="true"></div>
+      </div>
+      <div class="col" style="gap:16px">
+        <div class="readout"><div class="big" id="auc-v"></div><div class="lbl" id="auc-l"></div></div>
+        <div class="card">
+          <h3>계산법</h3>
+          <p>"필요" 하나와 "불필요" 하나로 짝을 다 만든다. 그중 "필요" 쪽이 오른쪽(p가 더 높은 쪽)에 선 짝의 비율이 AUROC. 순서가 뒤집힌 짝은 점선으로 표시된다.</p>
+        </div>
+        <div class="card">
+          <h3>τ와의 관계</h3>
+          <p>AUROC는 줄 세우기만 본다. 11번의 τ는 이 줄 어디를 자를지 정하는 칼이다.</p>
+        </div>
+        <button class="jump" data-back style="align-self:flex-start">← 돌아가기</button>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">예시 숫자는 설명용. 논문 수치는 §4 Table 3 (0.894–0.957)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>부록</b> 질문이 나오면 여기로 온다. "완벽" → 1.0, "동전 던지기" → 0.5 근처. 논문의 probe는 0.89–0.96이니 "논문 수준" 예시처럼 거의 다 맞게 서고 한두 짝만 뒤집힌 상태. ← 돌아가기 버튼이나 방향키로 원래 슬라이드로 돌아간다.
+  </aside>
 </section>
 
 </div></div>
@@ -746,6 +806,7 @@ aside.notes { display: none; }
     var dTc = Math.round((d[1] - base[1]) / base[1] * 100);
     document.getElementById("ro-prompt-l").textContent = i === 1 ? "정확도 · 도구 호출 (기준점)" :
       "기본 대비 정확도 " + (d[0] - base[0] >= 0 ? "+" : "") + (d[0] - base[0]).toFixed(1) + "%p, 호출 " + (dTc >= 0 ? "+" : "") + dTc + "%";
+    keepWords(document.getElementById("ro-prompt-l")); keepWords(document.getElementById("mode-quote"));
     Array.prototype.forEach.call(document.querySelectorAll("#modes-prompt button"), function (b, j) { b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
   }
   document.getElementById("modes-prompt").innerHTML = MODES.map(function (m, j) { return '<button data-i="' + j + '">' + m.name + "</button>"; }).join("");
@@ -771,7 +832,7 @@ aside.notes { display: none; }
     if (m.indexOf("Llama") === 0) note = m === "Llama-3.3-70B"
       ? "이 모델은 soft prefill 문장을 거의 무시한다. τ를 돌려도 호출 수가 별로 안 움직인다. 출력 형식을 강제하는 hard prefill로 조절은 가능해졌지만, 정확도는 79.0%(τ=0.1)에서 33.9%(τ=0.9)까지 떨어졌다."
       : "이 모델은 soft prefill 문장을 자주 무시한다. 정확도도 기본보다 낮다. 논문은 hard prefill로 τ=0.1에서 79.9%까지 회복했다.";
-    document.getElementById("tau-note").textContent = note;
+    document.getElementById("tau-note").textContent = note; keepWords(document.getElementById("tau-note")); keepWords(document.getElementById("ro-tau-l"));
   }
   var tauInput = document.getElementById("tau");
   tauInput.addEventListener("input", function () { tauState.i = +tauInput.value; renderTau(); });
@@ -860,17 +921,88 @@ aside.notes { display: none; }
     var n = Object.keys(picks).length;
     var tools = Object.keys(picks).filter(function (k) { return picks[k] === "tool"; }).length;
     var sum = document.getElementById("quiz-sum");
+    keepWords(card.querySelector(".pick"));
     if (n < QUIZ.length) sum.textContent = n + " / " + QUIZ.length + " 답함 · 도구 호출 " + tools + "번";
     else sum.innerHTML = "도구 호출 <b>" + tools + "번</b>. 이상적인 답은 쉬움 2개는 바로, 어려움 2개는 도구, 중간 2개는 <b>푸는 사람에 따라 다름</b>. 모델도 마찬가지다.";
+    keepWords(sum);
   });
+
+
+  /* ---------- line breaks only between 어절 (spaces) ---------- */
+  function keepWords(root) {
+    var BREAKY = /[^\s가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9]/;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        var p = n.parentNode;
+        if (!p || /^(SCRIPT|STYLE|OPTION|SELECT|TEXTAREA)$/.test(p.nodeName) || p.closest(".nw, svg")) return NodeFilter.FILTER_REJECT;
+        return BREAKY.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (n) {
+      var frag = document.createDocumentFragment();
+      n.nodeValue.split(/(\s+)/).forEach(function (tok) {
+        if (!tok) return;
+        if (/\s/.test(tok) || !BREAKY.test(tok)) { frag.appendChild(document.createTextNode(tok)); return; }
+        var sp = document.createElement("span"); sp.className = "nw"; sp.textContent = tok; frag.appendChild(sp);
+      });
+      n.parentNode.replaceChild(frag, n);
+    });
+  }
+  window.__keepWords = keepWords;
+  /* ---------- appendix A1: AUROC playground ---------- */
+  (function () {
+    var P = [0.05, 0.14, 0.27, 0.41, 0.47, 0.66, 0.81, 0.93];
+    var PRESET = { paper: [0,0,0,1,0,1,1,1], perfect: [0,0,0,0,1,1,1,1] };
+    var labels = PRESET.paper.slice();
+    var strip = document.getElementById("auc-strip");
+    var scale = document.getElementById("auc-scale");
+    var pos = function (v) { return ((v - 0.5) / 0.5 * 100) + "%"; };
+    scale.innerHTML = '<div class="band" style="left:' + pos(0.894) + ';width:calc(' + pos(0.957) + ' - ' + pos(0.894) + ')"></div>' +
+      [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map(function (v) { return '<span class="tick" style="left:' + pos(v) + '">' + v.toFixed(1) + (v === 0.5 ? " 동전 던지기" : v === 1 ? " 완벽" : "") + "</span>"; }).join("") +
+      '<div class="pin" id="auc-pin"></div><div class="pinlbl" id="auc-pinlbl"></div>';
+    function render() {
+      var negs = [], poss = [];
+      labels.forEach(function (l, i) { (l ? poss : negs).push(i); });
+      var good = 0, flipped = {};
+      negs.forEach(function (n) { poss.forEach(function (p) { if (p > n) good++; else { flipped[n] = flipped[p] = 1; } }); });
+      var total = negs.length * poss.length;
+      strip.innerHTML = labels.map(function (l, i) {
+        return '<button class="cell' + (l ? " pos" : "") + (flipped[i] ? " flip" : "") + '" data-i="' + i + '" aria-label="p ' + P[i] + ', ' + (l ? "도구 필요" : "도구 불필요") + '"><b>' + (l ? "필요" : "불필요") + "</b><span>p\u00a0" + P[i].toFixed(2) + "</span></button>";
+      }).join("");
+      var v = total ? good / total : null;
+      document.getElementById("auc-v").textContent = v === null ? "—" : "AUROC " + v.toFixed(2);
+      document.getElementById("auc-l").textContent = v === null ? "\"필요\"와 \"불필요\"가 하나씩은 있어야 계산된다" : "맞게 선 짝 " + good + " / 전체 짝 " + total + " (뒤집힌 짝 " + (total - good) + ")";
+      var x = pos(v === null ? 0.5 : Math.max(0.5, v));
+      document.getElementById("auc-pin").style.left = x;
+      var pl = document.getElementById("auc-pinlbl"); pl.style.left = x; pl.textContent = v === null ? "" : v.toFixed(2);
+    }
+    strip.addEventListener("click", function (e) {
+      var b = e.target.closest(".cell"); if (!b) return;
+      labels[+b.dataset.i] ^= 1; render();
+    });
+    document.querySelector('[data-appendix="A1"] .btns').addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var k = b.dataset.preset;
+      if (k === "random") { labels = PRESET.perfect.slice(); for (var i = labels.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = labels[i]; labels[i] = labels[j]; labels[j] = t; } }
+      else labels = PRESET[k].slice();
+      Array.prototype.forEach.call(e.currentTarget.querySelectorAll("button"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      render();
+    });
+    render();
+  })();
 
   /* ---------- deck navigation ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
-  var cur = 0, timers = [];
+  var mains = slides.filter(function (s) { return !s.dataset.appendix; });
+  var cur = null, origin = null, timers = [];
   var notes = document.getElementById("notes");
-  slides.forEach(function (s, i) {
-    Array.prototype.forEach.call(s.querySelectorAll(".pg"), function (p) { p.textContent = (i + 1) + " / " + slides.length; });
+  slides.forEach(function (s) {
+    var app = s.dataset.appendix;
+    s.dataset.key = app || String(mains.indexOf(s) + 1);
+    Array.prototype.forEach.call(s.querySelectorAll(".pg"), function (p) { p.textContent = app ? "부록 " + app : s.dataset.key + " / " + mains.length; });
   });
+  function byKey(k) { for (var i = 0; i < slides.length; i++) if (slides[i].dataset.key === k) return slides[i]; return null; }
   function fit() {
     var s = Math.min(window.innerWidth / 1320, (window.innerHeight - 44) / 760);
     document.getElementById("stage").style.transform = "scale(" + s + ") translateY(-10px)";
@@ -890,26 +1022,39 @@ aside.notes { display: none; }
       timers.push(setTimeout(function () { f.style.width = (+f.dataset.w / max * 100) + "%"; }, reduce ? 0 : 500));
     });
   }
-  function go(i, push) {
-    i = Math.max(0, Math.min(slides.length - 1, i));
-    slides[cur].classList.remove("active");
-    cur = i;
-    slides[cur].classList.add("active");
-    document.getElementById("progress").style.width = ((cur + 1) / slides.length * 100) + "%";
-    document.getElementById("bar-pg").textContent = (cur + 1) + " / " + slides.length;
-    document.getElementById("bar-title").textContent = slides[cur].dataset.title || "";
-    var n = slides[cur].querySelector("aside.notes");
-    notes.innerHTML = n ? n.innerHTML : "";
-    if (push !== false) history.replaceState(null, "", "#" + (cur + 1));
-    play(slides[cur]);
+  function show(slide, push) {
+    if (!slide) slide = mains[0];
+    if (cur) cur.classList.remove("active");
+    cur = slide;
+    cur.classList.add("active");
+    var mi = mains.indexOf(cur);
+    if (mi >= 0) document.getElementById("progress").style.width = ((mi + 1) / mains.length * 100) + "%";
+    document.getElementById("bar-pg").textContent = mi >= 0 ? (mi + 1) + " / " + mains.length : "부록 " + cur.dataset.key;
+    document.getElementById("bar-title").textContent = cur.dataset.title || "";
+    var back = cur.querySelector("[data-back]");
+    if (back) back.textContent = "← " + (origin ? origin.dataset.key + "번 슬라이드로" : "본문으로") + " 돌아가기";
+    var n = cur.querySelector("aside.notes");
+    notes.innerHTML = n ? n.innerHTML : ""; keepWords(notes);
+    if (push !== false) history.replaceState(null, "", "#" + cur.dataset.key);
+    play(cur);
   }
+  function go(i) { show(mains[Math.max(0, Math.min(mains.length - 1, i))]); }
+  function step(d) {
+    if (cur.dataset.appendix) { show(origin || mains[mains.length - 1]); return; }
+    go(mains.indexOf(cur) + d);
+  }
+  document.addEventListener("click", function (e) {
+    var j = e.target.closest("[data-goto]");
+    if (j) { if (!cur.dataset.appendix) origin = cur; show(byKey(j.dataset.goto)); return; }
+    if (e.target.closest("[data-back]")) step(0);
+  });
   document.addEventListener("keydown", function (e) {
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "SELECT")) return;
-    if (["ArrowRight", "PageDown", " "].indexOf(e.key) >= 0) { e.preventDefault(); go(cur + 1); }
-    else if (["ArrowLeft", "PageUp"].indexOf(e.key) >= 0) { e.preventDefault(); go(cur - 1); }
+    if (["ArrowRight", "PageDown", " "].indexOf(e.key) >= 0) { e.preventDefault(); step(1); }
+    else if (["ArrowLeft", "PageUp"].indexOf(e.key) >= 0) { e.preventDefault(); step(-1); }
     else if (e.key === "Home") go(0);
-    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "End") go(mains.length - 1);
     else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
     else if (e.key === "f" || e.key === "F") toggleFull();
   });
@@ -917,8 +1062,8 @@ aside.notes { display: none; }
     if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
     else document.exitFullscreen && document.exitFullscreen();
   }
-  document.getElementById("btn-next").onclick = function () { go(cur + 1); };
-  document.getElementById("btn-prev").onclick = function () { go(cur - 1); };
+  document.getElementById("btn-next").onclick = function () { step(1); };
+  document.getElementById("btn-prev").onclick = function () { step(-1); };
   document.getElementById("btn-notes").onclick = function () { notes.classList.toggle("on"); };
   document.getElementById("btn-full").onclick = toggleFull;
   var tx = null;
@@ -926,14 +1071,13 @@ aside.notes { display: none; }
   document.addEventListener("touchend", function (e) {
     if (tx === null) return;
     var dx = e.changedTouches[0].clientX - tx; tx = null;
-    if (Math.abs(dx) > 60) go(cur + (dx < 0 ? 1 : -1));
+    if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
   });
   window.addEventListener("resize", fit);
-  window.addEventListener("hashchange", function () { var h = parseInt(location.hash.slice(1), 10); if (h && h - 1 !== cur) go(h - 1, false); });
+  window.addEventListener("hashchange", function () { var t = byKey(decodeURIComponent(location.hash.slice(1))); if (t && t !== cur) show(t, false); });
+  keepWords(document.getElementById("stage"));
   fit();
-  var start = parseInt(location.hash.slice(1), 10);
-  slides[0].classList.add("active");
-  go(start ? start - 1 : 0, false);
+  show(byKey(decodeURIComponent(location.hash.slice(1))) || mains[0], false);
 })();
 </script>
 </body>
