@@ -103,6 +103,26 @@ button.jump { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
 .pp-probe .pv-gauge { flex: 1; margin: 0; height: 20px; }
 .pp-probe b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .msg.prefill.need { background: #fff8dc; border-color: var(--ink); }
+.tr-steps { display: flex; gap: 8px; margin-bottom: 12px; }
+.tr-steps > span { flex: 1; font-size: 15px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 2px solid var(--line); color: var(--muted); transition: all .3s; }
+.tr-steps > span.on { border-color: var(--ink); color: var(--ink); }
+.tr-steps > span.now { box-shadow: 0 0 0 3px var(--tape); }
+.tr-table { display: grid; grid-template-columns: 1.7fr 0.8fr 0.55fr 0.75fr 1.5fr; column-gap: 14px; align-items: center; }
+.tr-table > div { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 17px; min-height: 44px; display: flex; align-items: center; }
+.tr-table .hd { font-size: 13px; font-weight: 700; color: var(--muted); min-height: 0; padding-top: 0; }
+.tr-table .c { opacity: 0; transition: opacity .35s; }
+.tr-table .c.on { opacity: 1; }
+.tr-table .ok { color: var(--s-probe); font-weight: 700; }
+.tr-table .ng { color: var(--s-rta); font-weight: 700; }
+.ychip { font-family: var(--mono); font-size: 14px; font-weight: 700; padding: 3px 9px; border-radius: 6px; border: 1.5px solid var(--ink); }
+.ychip.y1 { background: var(--tape); }
+.ychip.y0 { background: #eef0f4; border-color: #b9bfcc; }
+.tr-vec { width: 100%; }
+.tr-fit .tr-vec { max-width: 440px; }
+.tr-fit { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; margin-top: 14px; padding: 10px 14px; border-radius: 10px; background: #f3f4f7; opacity: .25; transition: opacity .35s; }
+.tr-fit.on { opacity: 1; }
+.tr-fit-l { font-size: 15px; font-weight: 700; }
+.tr-fit-r { font-size: 14px; color: var(--ink-2); }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
 
 h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
@@ -435,6 +455,40 @@ aside.notes { display: none; }
   </aside>
 </section>
 
+<!-- 7.5 · How the probe is trained -->
+<section class="slide" data-title="probe 학습" id="train-slide">
+  <div class="body">
+    <h2>probe 학습: 도구를 빼고 풀려 보면 정답지가 생긴다</h2>
+    <div class="pv-controls">
+      <span class="small muted">모델</span>
+      <div class="btns" id="tr-model">
+        <button data-m="0" aria-pressed="true">Qwen3-32B</button>
+        <button data-m="1">Qwen3-1.7B</button>
+      </div>
+      <span style="flex:1"></span>
+      <button id="tr-next" class="jump">다음 단계</button>
+      <button id="tr-replay" class="jump">처음부터</button>
+    </div>
+    <div class="tr-steps" id="tr-steps">
+      <span data-s="1">1. 도구 없이 풀게 한다</span>
+      <span data-s="2">2. 채점해서 라벨을 붙인다</span>
+      <span data-s="3">3. 같은 문제의 h를 꺼낸다</span>
+      <span data-s="4">4. 로지스틱 회귀로 w를 학습한다</span>
+    </div>
+    <div class="tr-table" id="tr-table"></div>
+    <div class="tr-fit" id="tr-fit">
+      <span class="tr-fit-l">학습된 w</span>
+      <div class="pv-vec tr-vec" id="tr-w" aria-hidden="true"></div>
+      <span class="tr-fit-r">L2 정규화 로지스틱 회귀 · 학습 900개 · CPU에서 몇 초</span>
+    </div>
+    <p class="small" style="margin-top:14px">모델을 바꿔 보면 같은 문제라도 라벨이 달라진다. 그래서 라벨도 probe도 <b>모델마다 따로</b> 만든다. 평가는 학습에 쓰지 않은 2,250문제로 했다.</p>
+  </div>
+  <div class="foot"><span class="src">§4 Setup, 부록 E.4–E.5 · 모델 답과 h 값은 설명용, 정답은 논문 부록 A 예시</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>probe 학습</b> 정답지를 사람이 만들지 않는다. 모델에게 도구 없이 풀려 보고 맞으면 0(도구 불필요), 틀리면 1(도구 필요). 그래서 라벨이 모델마다 다르다: 모델 버튼을 바꿔 보여주면 중간 난이도 문제의 라벨이 뒤집힌다. 입력은 같은 문제의 마지막 토큰 hidden state(모든 레이어 이어 붙임, 표준화). sklearn 로지스틱 회귀, L2 λ=10,000. 학습 900개(단일 홉 15개 환경 × 3 난이도 × 20개), 평가는 따로 둔 2,250개. 90개만 써도 AUROC 0.81 이상. 추론 때는 p = σ(z/T), T=2.
+  </aside>
+</section>
+
 <!-- 8 · Probe -->
 <section class="slide" data-title="독심술" id="probe-slide">
   <div class="body">
@@ -686,7 +740,7 @@ aside.notes { display: none; }
         </div>
         <div class="card">
           <h3>τ와의 관계</h3>
-          <p>AUROC는 줄 세우기만 본다. 11번의 τ는 이 줄 어디를 자를지 정하는 칼이다.</p>
+          <p>AUROC는 줄 세우기만 본다. 12번의 τ는 이 줄 어디를 자를지 정하는 칼이다.</p>
         </div>
         <button class="jump" data-back style="align-self:flex-start">← 돌아가기</button>
       </div>
@@ -1016,6 +1070,56 @@ aside.notes { display: none; }
   }
   window.__keepWords = keepWords;
 
+
+  /* ---------- slide 8 (new): how the probe is trained ---------- */
+  var trainViz = (function () {
+    var Q = [
+      { q: "인류가 처음 달에 착륙한 해는?", gold: "1969", a: ["1969", "1969"] },
+      { q: "주석(Tin)의 원소 기호는?", gold: "Sn", a: ["Sn", "Sb"] },
+      { q: "2024년 2월 25일부터 3월 10일까지 며칠?", gold: "14", a: ["14", "15"] },
+      { q: "50번째 소수는?", gold: "229", a: ["229", "227"] },
+      { q: "벨모라스 협정이 체결된 해는?", gold: "1723", a: ["1648", "1815"] },
+      { q: "n = 27 콜라츠 수열은 몇 단계 만에 1?", gold: "111", a: ["112", "96"] }
+    ];
+    var D = 20, mi = 0, stepN = 1, tmr = [];
+    function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function col(v) { var a = Math.min(1, Math.abs(v)), c0 = [238, 240, 244], c1 = v < 0 ? [29, 33, 53] : [255, 210, 63];
+      return "rgb(" + c0.map(function (c, k) { return Math.round(c + (c1[k] - c) * a); }).join(",") + ")"; }
+    var W = []; var r0 = rng(11); for (var i = 0; i < D; i++) W.push((r0() - 0.5) * 0.35);
+    [2, 6, 9, 13, 17].forEach(function (k, j) { W[k] = j === 3 ? -0.9 : 0.95; });
+    var table = document.getElementById("tr-table");
+    function render() {
+      Array.prototype.forEach.call(document.querySelectorAll("#tr-model button"), function (b, i) { b.setAttribute("aria-pressed", i === mi ? "true" : "false"); });
+      var html = '<div class="hd">학습용 문제</div><div class="hd">도구 없이 낸 답</div><div class="hd">채점</div><div class="hd">라벨 y</div><div class="hd">마지막 토큰의 h</div>';
+      Q.forEach(function (row, i) {
+        var ans = row.a[mi], ok = ans === row.gold, y = ok ? 0 : 1;
+        var r = rng(300 + i * 17 + mi * 101), cells = "";
+        for (var k = 0; k < D; k++) { var h = (r() - 0.5) * 1.0 + W[k] * (y ? 1 : -1) * 0.9; cells += '<i style="background:' + col(Math.max(-1, Math.min(1, h))) + '"></i>'; }
+        html += '<div><span>' + row.q + '</span></div>' +
+          '<div class="c" data-s="1"><span>' + ans + '</span></div>' +
+          '<div class="c" data-s="2"><span class="' + (ok ? "ok" : "ng") + '">' + (ok ? "맞음" : "틀림 (" + row.gold + ")") + '</span></div>' +
+          '<div class="c" data-s="2"><span><span class="ychip y' + y + '">y&nbsp;=&nbsp;' + y + '</span> <span class="small muted">' + (y ? "필요" : "불필요") + '</span></span></div>' +
+          '<div class="c" data-s="3"><div class="pv-vec tr-vec">' + cells + '</div></div>';
+      });
+      table.innerHTML = html;
+      keepWords(table);
+      document.getElementById("tr-w").innerHTML = W.map(function (w) { return '<i style="background:' + col(w) + '"></i>'; }).join("");
+      paint();
+    }
+    function paint() {
+      Array.prototype.forEach.call(table.querySelectorAll(".c"), function (c) { c.classList.toggle("on", +c.dataset.s <= stepN); });
+      Array.prototype.forEach.call(document.querySelectorAll("#tr-steps > span"), function (sp) { var k = +sp.dataset.s; sp.classList.toggle("on", k <= stepN); sp.classList.toggle("now", k === stepN && stepN < 4); });
+      document.getElementById("tr-fit").classList.toggle("on", stepN >= 4);
+      document.getElementById("tr-next").disabled = stepN >= 4;
+    }
+    function go(k) { tmr.forEach(clearTimeout); tmr = []; stepN = k; paint(); }
+    document.getElementById("tr-model").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; mi = +b.dataset.m; render(); });
+    document.getElementById("tr-next").addEventListener("click", function () { go(Math.min(4, stepN + 1)); });
+    document.getElementById("tr-replay").addEventListener("click", function () { go(1); });
+    Array.prototype.forEach.call(document.querySelectorAll("#tr-steps > span"), function (sp) { sp.style.cursor = "pointer"; sp.addEventListener("click", function () { go(+sp.dataset.s); }); });
+    render();
+    return { enter: function () { go(1); }, show: function (k, m) { if (m !== undefined) { mi = m; render(); } go(k); } };
+  })();
   /* ---------- slide 8: probe pipeline, step by step ---------- */
   var probeViz = (function () {
     var QS = [
@@ -1214,6 +1318,7 @@ aside.notes { display: none; }
   function play(slide) {
     timers.forEach(clearTimeout); timers = [];
     if (slide.id === "probe-slide") probeViz.enter();
+    if (slide.id === "train-slide") trainViz.enter();
     if (slide.querySelector("#pp-demo")) ppDemo.enter();
     var steps = slide.querySelectorAll(".step");
     Array.prototype.forEach.call(steps, function (st) { st.classList.remove("on"); });
