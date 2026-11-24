@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>달 착륙 연도도 검색하는 에이전트 · When2Tool 읽기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --board: #e3e6eb;
+  --hole: #c9ced8;
+  --paper: #ffffff;
+  --ink: #1d2135;
+  --ink-2: #4a5068;
+  --muted: #6b7189;
+  --line: #d5d9e2;
+  --tape: #ffd23f;
+  --s-prompt: #2a78d6;  /* Prompt-only */
+  --s-rta: #eb6834;     /* Reason-then-Act */
+  --s-probe: #1baf7a;   /* Probe&Prefill */
+  --display: "Black Han Sans", "IBM Plex Sans KR", sans-serif;
+  --body: "IBM Plex Sans KR", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background-color: var(--board);
+  background-image: radial-gradient(circle at 12px 12px, var(--hole) 3.2px, transparent 3.6px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--body);
+  overflow: hidden;
+  word-break: keep-all;
+}
+#viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+#stage { width: 1280px; height: 720px; position: relative; transform-origin: center center; }
+
+.slide {
+  position: absolute; inset: 0;
+  background: var(--paper);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 #b9bfcc, 0 18px 40px -18px rgba(29,33,53,.35);
+  padding: 52px 64px 44px;
+  display: none;
+  flex-direction: column;
+}
+.slide.active { display: flex; }
+.slide > .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.foot {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
+  font-size: 13px; color: var(--muted); padding-top: 14px;
+}
+.foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
+
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 46px; line-height: 1.18; margin-bottom: 22px; max-width: 1080px; }
+h3 { font-size: 19px; margin: 0 0 10px; font-weight: 700; }
+p { margin: 0; font-size: 22px; line-height: 1.55; }
+.lead { font-size: 24px; color: var(--ink-2); max-width: 900px; }
+.small { font-size: 17px; line-height: 1.5; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 10px; }
+ul.plain li { font-size: 21px; line-height: 1.5; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+.row { display: flex; gap: 40px; min-height: 0; }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* the one loud thing: a tool call wears caution tape */
+.tool {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 17px; font-weight: 700;
+  background: var(--tape); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 6px;
+  padding: 6px 12px 6px 0; overflow: hidden;
+}
+.tool::before {
+  content: ""; align-self: stretch; width: 18px; margin: -6px 0;
+  background: repeating-linear-gradient(-45deg, var(--ink) 0 5px, var(--tape) 5px 10px);
+}
+.tool.big { font-size: 22px; padding: 10px 16px 10px 0; }
+.tool.big::before { margin: -10px 0; width: 24px; }
+
+/* chat */
+.chat { display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 620px; font-size: 21px; line-height: 1.45; padding: 12px 18px; border-radius: 16px; }
+.msg.user { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: #eef0f4; border-bottom-left-radius: 4px; }
+.msg.toolres { align-self: flex-start; font-family: var(--mono); font-size: 16px; color: var(--ink-2); background: none; border: 1.5px dashed var(--line); }
+.msg.prefill { background: #e3f6ee; border: 2px solid var(--s-probe); }
+.msg .who { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 2px; font-family: var(--body); }
+.msg.user .who { color: #b8bdd0; }
+.step { opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; }
+.step.on { opacity: 1; transform: none; }
+
+button, select {
+  font: inherit; color: var(--ink);
+  border: 2px solid var(--ink); background: #fff; border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: 17px; font-weight: 500;
+}
+button:hover { background: #f1f3f7; }
+button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--s-prompt); outline-offset: 2px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* title slide */
+.title-slide { justify-content: space-between; }
+.title-slide h1 { font-size: 80px; line-height: 1.1; max-width: 700px; }
+.title-slide .paper { font-size: 20px; color: var(--ink-2); line-height: 1.5; }
+.title-slide .paper b { color: var(--ink); }
+.title-chat { position: absolute; right: 64px; top: 220px; width: 440px; }
+
+/* quiz */
+.quiz { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.q { border: 2px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-height: 196px; }
+.q .cat { font-size: 14px; font-weight: 700; color: var(--muted); }
+.q .task { font-size: 20px; line-height: 1.4; flex: 1; }
+.q .btns button { font-size: 15px; padding: 6px 10px; }
+.q .reveal { display: none; font-size: 15px; line-height: 1.45; }
+.q.done .reveal { display: block; }
+.q.done .btns { display: none; }
+.q.done { border-color: var(--ink); }
+.lvl { display: inline-block; font-weight: 700; padding: 1px 8px; border-radius: 99px; font-size: 13px; margin-right: 6px; }
+.lvl.e { background: #e3f6ee; } .lvl.m { background: #fff3c4; } .lvl.h { background: #fde4da; }
+.quiz-sum { margin-top: 14px; font-size: 20px; min-height: 30px; }
+
+/* bars (simple, horizontal) */
+.hbar { display: grid; grid-template-columns: 180px 1fr 90px; gap: 14px; align-items: center; font-size: 18px; }
+.hbar .track { position: relative; height: 28px; }
+.hbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ink); transition: width .9s cubic-bezier(.2,.7,.2,1); }
+.hbar .fill.t { background: var(--tape); border: 2px solid var(--ink); }
+.hbar .v { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.marker { position: absolute; top: -8px; bottom: -8px; border-left: 2px dashed var(--ink-2); }
+.marker span { position: absolute; top: -22px; left: -40px; width: 80px; text-align: center; font-size: 13px; color: var(--ink-2); }
+
+/* benchmark grid */
+.bench { display: grid; grid-template-columns: 150px repeat(3, 1fr); border-top: 2px solid var(--ink); }
+.bench > div { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 17px; line-height: 1.4; }
+.bench .hd { font-weight: 700; font-size: 15px; color: var(--ink-2); }
+.bench .cat b { display: block; font-size: 18px; }
+.bench .cat span { font-size: 14px; color: var(--muted); }
+
+/* chart */
+.chart-wrap { position: relative; }
+.chart-wrap svg { display: block; overflow: visible; width: 100%; height: auto; }
+.chart-wrap text { font-family: var(--body); }
+.tip {
+  position: absolute; pointer-events: none; background: var(--ink); color: #fff;
+  font-size: 14px; line-height: 1.4; padding: 8px 10px; border-radius: 6px; white-space: nowrap;
+  opacity: 0; transition: opacity .12s; z-index: 5;
+}
+.legend { display: flex; gap: 18px; font-size: 15px; color: var(--ink-2); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; }
+.readout { border-left: 4px solid var(--ink); padding: 6px 0 6px 16px; }
+.readout .big { font-family: var(--display); font-size: 44px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.readout .lbl { font-size: 15px; color: var(--muted); }
+.quote { font-family: var(--mono); font-size: 15px; background: #f3f4f7; border-radius: 6px; padding: 8px 12px; color: var(--ink-2); }
+
+/* big statement */
+.statement { flex: 1; display: grid; place-items: center; text-align: center; }
+.statement h2 { font-size: 66px; max-width: none; margin: 0; }
+.doors { display: flex; gap: 28px; margin-top: 40px; justify-content: center; }
+.door { border: 3px solid var(--ink); border-radius: 14px; padding: 22px 28px; width: 360px; text-align: left; }
+.door b { font-family: var(--display); font-weight: 400; font-size: 32px; display: block; margin-bottom: 6px; }
+
+/* probe pipeline */
+.pipe { display: flex; align-items: stretch; gap: 14px; }
+.pnode { border: 2px solid var(--ink); border-radius: 10px; padding: 18px 18px; font-size: 18px; line-height: 1.45; flex: 1; min-height: 170px; }
+.pnode b { display: block; font-size: 20px; margin-bottom: 6px; }
+.parrow { align-self: center; font-size: 26px; color: var(--ink-2); }
+.layers { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 8px; }
+.layers i { height: 10px; background: #dfe3ea; border-radius: 2px; }
+.layers i:last-child, .layers i.lit { background: var(--s-probe); }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.stat .n { font-family: var(--display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 18px; line-height: 1.45; margin-top: 8px; color: var(--ink-2); }
+
+.tag { display: inline-block; font-size: 13px; font-weight: 700; color: var(--ink-2); border: 1.5px solid var(--ink-2); border-radius: 99px; padding: 0 8px; margin-left: 6px; vertical-align: 2px; }
+.card { border: 2px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.card h3 { margin-bottom: 6px; }
+.card p { font-size: 18px; }
+
+/* chrome */
+#bar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 40px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 14px; font-size: 13px; color: var(--ink-2); z-index: 20;
+}
+#bar button { font-size: 13px; padding: 3px 10px; border-width: 1.5px; background: rgba(255,255,255,.85); }
+#progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--ink); transition: width .25s; z-index: 20; }
+#notes {
+  position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%);
+  width: min(900px, 94vw); max-height: 34vh; overflow: auto;
+  background: var(--ink); color: #f2f3f7; border-radius: 10px; padding: 14px 18px;
+  font-size: 15px; line-height: 1.6; display: none; z-index: 30;
+}
+#notes.on { display: block; }
+#notes b { color: var(--tape); }
+aside.notes { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .step, .hbar .fill { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="viewport"><div id="stage">
+
+<!-- 1 · Title -->
+<section class="slide title-slide" data-title="표지">
+  <div>
+    <p class="paper"><b>When2Tool</b> 논문 읽기</p>
+  </div>
+  <h1>달 착륙이 몇 년이었는지도 검색해 보는 에이전트</h1>
+  <div class="chat title-chat" aria-hidden="true">
+    <div class="msg user step" data-step="1"><span class="who">사용자</span>인류가 처음 달에 착륙한 해는?</div>
+    <div class="step" data-step="2"><span class="tool">lookup_year("first Moon landing")</span></div>
+    <div class="msg bot step" data-step="3"><span class="who">에이전트</span>1969년입니다. (방금 찾아봤어요)</div>
+  </div>
+  <p class="paper"><b>LLM Agents Already Know When to Call Tools — Even Without Reasoning</b><br>
+  Chung-En Sun, Linbo Liu, Ge Yan, Zimo Wang, Tsui-Wei Weng (UC San Diego)<br>
+  arXiv 2605.09252 · 2026년 5월 공개, 이 자료는 v4(2026-11-08) 기준</p>
+  <aside class="notes">
+    <b>오프닝</b> 도구를 쥐여 준 에이전트가 1969를 외우고 있으면서도 검색부터 하는 장면. 이 예시는 논문 서론에 나오는 바로 그 예시다. 오늘 이야기: 왜 그러는지, 프롬프트로 왜 안 고쳐지는지, 그리고 "모델은 사실 알고 있다"는 증거와 처방.
+  </aside>
+</section>
+
+<!-- 2 · Quiz -->
+<section class="slide" data-title="퀴즈" id="quiz-slide">
+  <div class="body">
+    <h2>오늘은 여러분이 에이전트입니다. 도구를 부를까요?</h2>
+    <div class="quiz" id="quiz"></div>
+    <p class="quiz-sum" id="quiz-sum">카드마다 하나씩 골라 보세요.</p>
+  </div>
+  <div class="foot"><span class="src">문제는 모두 논문의 벤치마크 예시 (부록 A.3–A.5)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>청중 참여</b> 손을 들게 해도 좋다. "바로 답"이면 왼손, "도구"면 오른손. 핵심 반전: 쉬움은 대부분 맞힐 수 있고, 어려움은 도구 없이는 거의 못 푼다(6개 모델 평균 15.5%). 벨모라스 협정은 논문이 지어낸 사건이라 아예 불가능. 중간 난이도는 사람마다 다르다. 이게 바로 이 논문의 라벨 정의로 이어진다: "도구가 필요한가"의 정답은 문제가 아니라 푸는 사람(모델)에 달려 있다.
+  </aside>
+</section>
+
+<!-- 3 · Overcall -->
+<section class="slide" data-title="과잉 호출">
+  <div class="body">
+    <h2>도구가 있으니까 쓴다. 쉬운 문제 750개에 호출 1,482번</h2>
+    <div class="row" style="flex:1">
+      <div class="col" style="flex:0.9">
+        <div class="chat" id="overcall-chat">
+          <div class="msg user step"><span class="who">사용자</span>1월 3일부터 1월 18일까지 며칠이야?</div>
+          <div class="step"><span class="tool">date_diff("01-03", "01-18")</span></div>
+          <div class="msg toolres step">→ 15</div>
+          <div class="msg bot step"><span class="who">에이전트</span>15일입니다.</div>
+        </div>
+        <p class="small muted" style="margin-top:auto">위 대화는 연출. 문제는 논문 DateTimeEnv의 쉬움 예시.</p>
+      </div>
+      <div class="col" style="justify-content:center; gap:26px">
+        <h3>아무 지시 없는 기본 설정, 쉬운 문제 750개에서 부른 도구 횟수</h3>
+        <div class="hbar"><span>Qwen3-1.7B</span><div class="track"><div class="fill t" data-w="864"></div><div class="marker" style="left:calc(750/1500*100%)"><span>문제 수 750</span></div></div><span class="v">864번</span></div>
+        <div class="hbar"><span>Llama-3.3-70B</span><div class="track"><div class="fill t" data-w="1482"></div><div class="marker" style="left:calc(750/1500*100%)"></div></div><span class="v">1,482번</span></div>
+        <p class="small">6개 모델이 2,250문제 테스트에서 <b>2,100–4,400번</b>을 불렀다. 문제당 0.94–1.95번.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§3.2 Finding 1</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>Finding 1</b> 모델의 기본값은 "도구가 있다, 그러므로 쓴다". 호출마다 API 비용과 지연이 붙고, 에이전트는 세션마다 결정을 수십 번 하니 누적된다. 크다고 덜 부르는 것도 아니다: 70B가 쉬운 문제에서 1.7B보다 더 많이 불렀다.
+  </aside>
+</section>
+
+<!-- 4 · Benchmark -->
+<section class="slide" data-title="벤치마크">
+  <div class="body">
+    <h2>When2Tool: 도구가 필요한 세 순간 × 난이도 3단계</h2>
+    <div class="bench">
+      <div class="hd"></div><div class="hd"><span class="lvl e">쉬움</span>대부분 혼자 푼다</div><div class="hd"><span class="lvl m">중간</span>풀 때도, 못 풀 때도</div><div class="hd"><span class="lvl h">어려움</span>도구 없이는 거의 불가</div>
+      <div class="cat"><b>계산 규모</b><span>계산할 수 있나?</span></div><div>2–40 사이 수의 덧셈·뺄셈·곱셈</div><div>3자리 수 곱셈·나눗셈</div><div>조 단위 산술, 5×5 행렬식</div>
+      <div class="cat"><b>지식 경계</b><span>알고 있나?</span></div><div>프랑스의 수도</div><div>주석(Tin)의 원소 기호</div><div>지어낸 개체 "Taskforce Nimbus-73"</div>
+      <div class="cat"><b>실행 추적</b><span>끝까지 따라갈 수 있나?</span></div><div><code>print(len('hello'))</code></div><div><code>sum(x**2 for x in range(1,6))</code></div><div>콜라츠 27, 20회 반복 DP</div>
+    </div>
+    <div class="row" style="margin-top:22px; gap:48px; align-items:flex-start">
+      <div class="col">
+        <h3>라벨은 모델마다 따로 붙인다</h3>
+        <p class="small">도구를 빼고 강제로 풀게 해서 <b>맞히면 "불필요", 틀리면 "필요"</b>. 같은 문제가 1.7B에겐 "필요", 32B에겐 "불필요"일 수 있다.</p>
+      </div>
+      <div class="col">
+        <h3>도구 없이 풀었을 때 정답률 (6개 모델 평균)</h3>
+        <div class="hbar" style="grid-template-columns:70px 1fr 70px"><span>쉬움</span><div class="track"><div class="fill" data-w="69.4" data-max="100"></div></div><span class="v">69.4%</span></div>
+        <div class="hbar" style="grid-template-columns:70px 1fr 70px"><span>중간</span><div class="track"><div class="fill" data-w="54.4" data-max="100"></div></div><span class="v">54.4%</span></div>
+        <div class="hbar" style="grid-template-columns:70px 1fr 70px"><span>어려움</span><div class="track"><div class="fill" data-w="15.5" data-max="100"></div></div><span class="v">15.5%</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§2, §4 Setup, 부록 A, Table 6 · 환경 18개(단일 15 + 멀티홉 3), 테스트 2,700문제, 모델 6개(Qwen3 1.7B/4B/14B/32B, Llama 3.1 8B/3.3 70B)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>벤치마크</b> 기존 도구 벤치마크(ToolLLM, BFCL 등)는 "모든 문제에 도구가 필요하다"고 가정하고 "잘 부르는가"를 잰다. When2Tool은 "부를지 말지"를 잰다. 도구 응답은 전부 로컬에서 시뮬레이션해서 API 비용 0. 라벨이 모델마다 다르다는 점을 꼭 강조.
+  </aside>
+</section>
+
+<!-- 5 · Prompt-only -->
+<section class="slide" data-title="프롬프트로 말리기">
+  <div class="body">
+    <h2>시도 1: "비싸니까 아껴 써" 프롬프트</h2>
+    <div class="row" style="flex:1">
+      <div class="col" style="flex:1.35">
+        <div class="legend" id="lg-prompt"></div>
+        <div class="chart-wrap" id="chart-prompt"></div>
+      </div>
+      <div class="col" style="gap:14px">
+        <label class="small">모델 <select id="model-prompt"></select></label>
+        <div class="btns" id="modes-prompt"></div>
+        <div class="quote" id="mode-quote"></div>
+        <div class="readout"><div class="big" id="ro-prompt"></div><div class="lbl" id="ro-prompt-l"></div></div>
+        <p class="small">"필요할 때만"은 지시 없음과 거의 같은 자리. "아껴 써"는 쉬운 문제보다 <b>어려운 문제</b>에서 정확도를 더 잃는다. Qwen3-4B 기준, 호출 하나를 줄일 때 잃는 정확도가 어려운 문제에서 2.5배.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§3.2 Finding 2·4, Table 2, Table 8 (2,250문제, 3회 평균)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>Finding 2, 4</b> 버튼을 눌러 점을 옮겨 보여준다. 포인트 두 개: (1) 프롬프트는 쉬운 것, 어려운 것 가리지 않고 호출을 줄인다. (2) 모드 하나가 점 하나라서 "호출 예산 30% 줄이기" 같은 미세 조절이 안 된다. Llama는 "도구 쓰지 마"라고 해도 3,000번 넘게 부른다는 것도 재밌는 포인트(모델 선택 바꿔서 보여주기).
+  </aside>
+</section>
+
+<!-- 6 · Reason-then-Act -->
+<section class="slide" data-title="생각하고 행동하기">
+  <div class="body">
+    <h2>시도 2: "먼저 생각해 보고 행동해"</h2>
+    <div class="row" style="flex:1">
+      <div class="col">
+        <div class="chat">
+          <div class="msg user"><span class="who">시스템</span>행동하기 전에, 직접 풀 수 있는지 도구가 필요한지 먼저 판단하세요.</div>
+          <div class="msg bot"><span class="who">Llama-3.1-8B</span>이 문제는 숫자가 크니까, 계산기 도구를 사용하는 게 좋겠습니다. 계산기로 계산해 보겠습니다.</div>
+          <div class="msg toolres">(도구 호출은 끝내 나오지 않음)</div>
+        </div>
+        <p class="small muted">대화는 연출. 논문 표현: "도구를 부르겠다고 말만 하고 올바른 호출은 만들지 않는다."</p>
+      </div>
+      <div class="col" style="gap:22px; justify-content:center">
+        <div class="card">
+          <h3>Llama-3.1-8B</h3>
+          <p>정확도 <b class="num">79.5% → 31.2%</b><br>도구 호출 <b class="num">3,708번 → 2번</b></p>
+        </div>
+        <div class="card">
+          <h3>Llama-3.3-70B</h3>
+          <p>정확도 <b class="num">83.1% → 47.9%</b><br>도구 호출 <b class="num">4,377번 → 0번</b></p>
+        </div>
+        <p class="small">Qwen에서는 쉬운 문제의 낭비가 조금 줄지만, 어려운 문제 비용은 여전하고 생각하는 토큰만큼 느려진다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§3.2 Finding 3, Table 8 (지시 없음 기준, Prompt-only → Reason-then-Act)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>Finding 3</b> ReAct, Reflexion 류의 think-before-act. 웃음 포인트: 말로는 완벽하게 계획하는데 행동을 안 한다. 회의에서 "제가 해 보겠습니다" 하고 안 하는 사람. 다음 장으로 넘어가는 질문을 여기서 던진다.
+  </aside>
+</section>
+
+<!-- 7 · Question -->
+<section class="slide" data-title="질문">
+  <div class="statement">
+    <div>
+      <h2>모델은 몰라서 부르는 걸까,<br>알면서 부르는 걸까?</h2>
+      <div class="doors">
+        <div class="door"><b>몰라서</b><p class="small">판단할 정보가 없다. 더 가르쳐야 한다 (fine-tuning).</p></div>
+        <div class="door"><b>알면서</b><p class="small">정보는 있는데 행동으로 못 옮긴다. 꺼내서 연결해 주면 된다.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§1, §3.2 마지막 문단</span><span class="pg"></span></div>
+  <aside class="notes">
+    청중에게 투표. 대부분 "몰라서"를 고를 것. 제목 스포일러가 있으니("Already Know") 눈치 빠른 사람은 맞힌다.
+  </aside>
+</section>
+
+<!-- 8 · Probe -->
+<section class="slide" data-title="독심술">
+  <div class="body">
+    <h2>독심술: 답을 쓰기 전에 머릿속을 들여다본다</h2>
+    <div class="pipe">
+      <div class="pnode"><b>문제를 읽는다</b>프롬프트를 모델에 한 번 통과 (원래 답 쓰기 전에 하는 계산)</div>
+      <div class="parrow">→</div>
+      <div class="pnode"><b>마지막 토큰의 hidden state</b>모든 레이어 값을 이어 붙인 벡터 하나
+        <div class="layers" aria-hidden="true"><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i></div>
+      </div>
+      <div class="parrow">→</div>
+      <div class="pnode"><b>로지스틱 회귀 하나</b><code>p = σ(w·h + b)</code><br>모델은 그대로, w와 b만 학습 (실제로는 표준화와 온도 T=2 포함)</div>
+      <div class="parrow">→</div>
+      <div class="pnode" style="border-color:var(--s-probe); background:#eefaf4"><b>p = 도구 필요 확률</b>답은 아직 한 글자도 안 씀</div>
+    </div>
+    <div class="stat-row" style="margin-top:64px">
+      <div class="stat"><div class="n">900개</div><div class="l">학습 예시. CPU에서 몇 초.<br>90개만 써도 AUROC 0.81 이상</div></div>
+      <div class="stat"><div class="n">94,720</div><div class="l">Qwen3-4B의 probe 입력 차원<br>(37 레이어 × 2,560)</div></div>
+      <div class="stat"><div class="n">0.7ms</div><div class="l">추가 지연 상한 (6개 모델).<br>추가 forward pass는 없다</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§4 Setup, §5.1 Step 1, Table 15, Table 17</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>probe</b> = hidden state 위에 얹은 작은 분류기. "이 정보가 모델 안에 있는가"를 검사하는 청진기. 선형이라는 게 핵심: 복잡한 분류기가 정보를 만들어낸 게 아니라, 이미 정리된 형태로 들어 있다는 뜻. 비유가 필요하면: 센서값 수천 개로 불량을 예측하는 로지스틱 회귀.
+  </aside>
+</section>
+
+<!-- 9 · AUROC -->
+<section class="slide" data-title="결과: 알고 있었다">
+  <div class="body">
+    <h2>결과: 모델은 알고 있었다. AUROC 0.89–0.96</h2>
+    <div class="row" style="flex:1">
+      <div class="col" style="flex:1.4">
+        <div class="chart-wrap" id="chart-auroc"></div>
+      </div>
+      <div class="col" style="justify-content:center">
+        <div class="card">
+          <h3>AUROC 읽는 법</h3>
+          <p>"필요" 문제 하나와 "불필요" 문제 하나를 아무렇게나 뽑았을 때, probe가 "필요" 쪽에 더 높은 점수를 줄 확률. 0.5는 동전 던지기, 1.0은 완벽.</p>
+        </div>
+        <div class="card" style="border-color:var(--ink)">
+          <h3>생각하라고 하면 무너진 Llama도</h3>
+          <p>Reason-then-Act에서 호출이 0~2번으로 붕괴했던 두 Llama 모델도 AUROC 0.93–0.94. 말로 표현하지 못해도 정보는 안에 있다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§4, Table 3 (테스트 2,250문제, 학습에 안 쓴 문제)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>핵심 발견</b> 원인은 "판단할 정보가 없어서"가 아니라 "가진 정보대로 행동하지 못해서". 그래서 해법은 더 가르치기가 아니라 꺼내 쓰기. 논문 제목 "Even Without Reasoning"이 이 지점. 점은 마우스를 올리면 난이도별 AUROC도 보인다. 중간 난이도가 가장 낮다 = 모델도 애매해하는 경계.
+  </aside>
+</section>
+
+<!-- 10 · Probe&Prefill -->
+<section class="slide" data-title="Probe&Prefill">
+  <div class="body">
+    <h2>처방: probe의 판단을 응답 첫 문장으로 대신 써 준다</h2>
+    <div class="row" style="flex:1">
+      <div class="col">
+        <div class="chat">
+          <div class="msg user"><span class="who">사용자</span>1월 3일부터 1월 18일까지 며칠이야?</div>
+          <div class="msg bot prefill"><span class="who">에이전트 응답의 첫 문장 (probe가 p &lt; τ라서 끼워 넣음)</span>I can solve this directly without using a tool.</div>
+          <div class="msg bot"><span class="who">모델이 이어서 씀</span>1월 18일 − 1월 3일 = \boxed{15}</div>
+        </div>
+        <div class="chat" style="margin-top:6px">
+          <div class="msg bot prefill" style="background:#fff8dc;border-color:var(--ink)"><span class="who">p ≥ τ면 이 문장을 끼워 넣음</span>I need to use a tool for this question.</div>
+        </div>
+      </div>
+      <div class="col" style="gap:18px">
+        <div class="card"><h3>재학습 없음</h3><p>모델 가중치도, forward pass도 건드리지 않는다. 응답 앞부분만 미리 채운다(prefill).</p></div>
+        <div class="card"><h3>τ 하나로 조절</h3><p>p를 자르는 문턱값 τ를 올릴수록 "혼자 풀 수 있음" 판정이 늘어 호출이 준다. 프롬프트와 달리 원하는 만큼 돌릴 수 있는 손잡이 (Qwen 기준).</p></div>
+        <div class="card"><h3>soft와 hard</h3><p>soft는 문장만 넣어서 모델이 반대할 여지를 둔다. 지시를 잘 안 듣는 Llama에는 출력 형식 자체를 강제하는 hard prefill이 필요했다.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§5.1, 부록 E.1</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>방법</b> 3단계: hidden state 뽑기 → probe로 p 계산, τ와 비교 → 첫 문장 prefill. 다른 steering 기법(activation addition 등)과 달리 forward pass를 안 건드리니 어떤 서빙 인프라에도 붙는다. hard prefill은 직답이면 "\boxed{", 도구면 tool-call JSON의 시작 부분을 강제로 채운다.
+  </aside>
+</section>
+
+<!-- 11 · Tau slider -->
+<section class="slide" data-title="τ 돌려보기">
+  <div class="body">
+    <h2>손잡이를 돌려 보자: 문턱값 τ</h2>
+    <div class="row" style="flex:1">
+      <div class="col" style="flex:1.35">
+        <div class="legend" id="lg-tau"></div>
+        <div class="chart-wrap" id="chart-tau"></div>
+      </div>
+      <div class="col" style="gap:14px">
+        <label class="small">모델 <select id="model-tau"></select></label>
+        <label class="small" for="tau">문턱값 τ = <b id="tau-v" class="num">0.5</b></label>
+        <input type="range" id="tau" min="0" max="4" step="1" value="2" style="width:100%; accent-color: var(--ink)">
+        <div class="readout"><div class="big" id="ro-tau"></div><div class="lbl" id="ro-tau-l"></div></div>
+        <p class="small" id="tau-note"></p>
+        <div class="card" style="margin-top:auto">
+          <h3>논문 속 옥에 티</h3>
+          <p class="small">5.1절 본문은 "τ를 낮추면 호출을 더 건너뛴다"고 쓰여 있다. 그런데 결정 규칙(p &lt; τ면 직답)과 Table 8, 부록 I는 반대 방향. 이 차트는 표를 따랐다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Table 8 (soft prefill), §5.2 · τ는 0.1, 0.3, 0.5, 0.7, 0.9 다섯 지점만 측정됨</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>시연</b> Qwen3-4B로 시작해서 τ를 0.1→0.9로 밀어 본다. 초록 선이 파랑·주황 점보다 왼쪽 위(적은 호출, 높은 정확도)에 있다. 논문은 Qwen 모델에 대해 이걸 "strictly better"라고 부른다. 그다음 Llama-3.3-70B로 바꾸면 τ를 돌려도 거의 안 움직인다: soft prefill을 무시하는 모델. <b>옥에 티</b>: 논문 5.1절 본문은 "τ를 낮추면 호출을 더 건너뛴다"고 쓰여 있는데, 결정 규칙(p &lt; τ면 직답)과 Table 8, 부록 I는 반대 방향이다. 여기서는 표를 따랐다.
+  </aside>
+</section>
+
+<!-- 12 · Scorecard -->
+<section class="slide" data-title="성적표">
+  <div class="body">
+    <h2>성적표: 평균 호출 38% 감소, 정확도는 1.7%p만 내줬다</h2>
+    <div class="row" style="flex:1; gap:48px">
+      <div class="col" style="flex:1.1">
+        <h3>호출 하나 줄일 때마다 잃는 정확도 (%p, 6개 모델 평균)</h3>
+        <div class="legend" id="lg-cost"></div>
+        <div class="chart-wrap" id="chart-cost"></div>
+      </div>
+      <div class="col" style="gap:18px">
+        <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2%. 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
+        <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA도 그대로.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, 부록 H Table 22</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>숫자 정리</b> 38%와 1.7%p는 τ=0.5에서 모델 6개 평균(기준: 지시 없는 기본 설정). 모델별로는 편차가 커서 Llama-3.1-8B는 −9.8%p. 이전 버전(v1) 초록은 48%로 적혀 있었는데 v4에서 38%로 바뀌었다. 예전 자료를 본 사람이 있으면 짚어 줄 것. SFT 결과가 재밌다: 900개로 학습하면 정확도는 +2–3%p 오르지만(부록 H.1) 호출 결정 경계는 못 배운다. 6,000개로 늘려도 +0.8%p에 호출은 오히려 늘었다(부록 H.2).
+  </aside>
+</section>
+
+<!-- 13 · Limits -->
+<section class="slide" data-title="한계">
+  <div class="body">
+    <h2>냉정하게 보면</h2>
+    <div class="row" style="flex:1; gap:48px">
+      <div class="col">
+        <h3>쓸 수 있는 조건</h3>
+        <ul class="plain">
+          <li><b>hidden state를 읽을 수 있어야</b> 한다. 오픈 웨이트 모델을 직접 띄워야 한다. API로만 쓰는 모델에는 지금 형태 그대로는 못 쓸 것이다 (발표자 추론).</li>
+          <li><b>모델마다 probe와 라벨</b>을 새로 만들어야 한다. 모델이 바뀌면 다시.</li>
+          <li>지시를 잘 안 듣는 모델(Llama)은 soft prefill을 부분적으로 무시해서, 출력 형식을 강제해야 했다.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>아직 열린 질문</h3>
+        <ul class="plain">
+          <li>When2Tool로 학습한 probe를 실제 QA에 그대로 옮기면 AUROC <b>0.67–0.80</b>. 깔끔한 벤치마크 밖에서는 신호가 약해진다.</li>
+          <li>저자들도 인정: probe가 "문제가 어려워 보이는지" 같은 표면 단서와 독립적이라는 건 증명하지 못했다.</li>
+          <li>실험은 1.7B–70B 오픈 모델까지. 더 큰 최신 모델에서도 같은지는 모른다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§5.2, 부록 E.1, 부록 G Table 19, 부록 J</span><span class="pg"></span></div>
+  <aside class="notes">
+    재롱 발표라도 한계는 정직하게. 특히 부록 J: Qwen3-4B에서 난이도 라벨(쉬움/어려움)로 학습한 probe와 비교하면 어느 쪽도 모든 지점에서 이기지는 않는다. 저자들은 모델별 necessity 라벨이 더 낫다고 보지만, "모델이 자기 능력을 안다"인지 "어려워 보이는 문제를 안다"인지는 증명하지 못했다고 스스로 적었다.
+  </aside>
+</section>
+
+<!-- 14 · For us -->
+<section class="slide" data-title="우리 에이전트엔">
+  <div class="body">
+    <h2>그래서 우리 에이전트에는? <span class="tag">제안</span></h2>
+    <div class="row" style="gap:28px; align-items:stretch">
+      <div class="col card">
+        <h3>1. 먼저 재 보기</h3>
+        <p>로그에서 도구를 부른 요청을 골라 도구 없이 다시 돌려 본다. 맞힌 비율이 곧 우리 에이전트의 "낭비 호출" 비율. 논문의 라벨 방식 그대로다.</p>
+      </div>
+      <div class="col card">
+        <h3>2. 오픈 모델을 쓴다면</h3>
+        <p>라벨 수백 개와 로지스틱 회귀 하나면 시험해 볼 수 있다. 코드도 공개돼 있다.</p>
+        <p class="small muted mono" style="font-size:14px">github.com/Trustworthy-ML-Lab/when2tool</p>
+      </div>
+      <div class="col card">
+        <h3>3. API 모델이라면</h3>
+        <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 self-ask나 첫 토큰 확률을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:24px">그리고 "아껴 써" 한 줄로 해결하려 하지 말 것. Qwen에서는 어려운 문제부터 망가졌다.</p>
+  </div>
+  <div class="foot"><span class="src">제안은 발표자 의견. 근거: §3.2, 부록 I (Qwen3-4B, 비슷한 호출 수에서 probe 90.4% vs self-ask 87.1%)</span><span class="pg"></span></div>
+  <aside class="notes">
+    <b>토론 질문</b> "여러분 에이전트에서 본 가장 어이없는 도구 호출은?" 각자 사례를 모으면 재밌다. API 모델의 prefill 지원 여부와 logprob 제공 여부는 제공사와 모델마다 다르니 쓰기 전에 확인.
+  </aside>
+</section>
+
+<!-- 15 · End -->
+<section class="slide" data-title="마무리">
+  <div class="statement">
+    <div>
+      <h2>모델은 알고 있었다.<br>행동으로 안 옮겼을 뿐.</h2>
+      <p class="lead" style="margin:28px auto 0">운동해야 하는 걸 아는 저처럼요. 질문 받겠습니다.</p>
+      <p class="small muted" style="margin-top:36px">arxiv.org/abs/2605.09252 · github.com/Trustworthy-ML-Lab/when2tool</p>
+    </div>
+  </div>
+  <div class="foot"><span></span><span class="pg"></span></div>
+  <aside class="notes">마무리 농담 후 Q&amp;A.</aside>
+</section>
+
+</div></div>
+
+<div id="notes" role="region" aria-label="발표자 노트"></div>
+<div id="bar">
+  <span id="bar-title"></span>
+  <span>
+    <button id="btn-notes" title="N 키">노트</button>
+    <button id="btn-full" title="F 키">전체화면</button>
+    <button id="btn-prev" aria-label="이전 슬라이드">이전</button>
+    <span id="bar-pg" class="num"></span>
+    <button id="btn-next" aria-label="다음 슬라이드">다음</button>
+  </span>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- data (Table 8: accuracy %, total tool calls on 2,250 single-hop test tasks) ---------- */
+  var MODELS = ["Qwen3-1.7B", "Qwen3-4B", "Qwen3-14B", "Qwen3-32B", "Llama-3.1-8B", "Llama-3.3-70B"];
+  var MODES = [
+    { k: "F", name: "도구 필수", quote: "\"tool use is mandatory\"" },
+    { k: "D", name: "지시 없음", quote: "(도구 사용에 대한 지시 없음)" },
+    { k: "N", name: "필요할 때만", quote: "\"only if necessary\"" },
+    { k: "S", name: "비싸니 아껴 써", quote: "\"expensive, use sparingly\"" },
+    { k: "X", name: "도구 쓰지 마", quote: "\"do not use any tools\"" }
+  ];
+  var PO = {
+    "Qwen3-1.7B":   [[86.8,3120],[88.2,2709],[87.2,2787],[70.2,1611],[26.3,293]],
+    "Qwen3-4B":     [[92.0,2435],[89.2,2118],[85.7,1852],[70.7,484],[50.8,121]],
+    "Qwen3-14B":    [[93.7,2421],[93.7,2211],[93.5,2175],[77.3,1020],[51.2,85]],
+    "Qwen3-32B":    [[92.8,2559],[94.1,2404],[93.5,2394],[93.3,1912],[66.8,451]],
+    "Llama-3.1-8B": [[78.7,4081],[79.5,3708],[77.7,3548],[81.4,2868],[77.6,3391]],
+    "Llama-3.3-70B":[[78.3,5302],[83.1,4377],[84.4,3988],[84.2,3431],[82.5,3615]]
+  };
+  var RTA = {
+    "Qwen3-1.7B":   [[86.7,2475],[84.7,1923],[84.0,1871],[73.2,1161],[71.1,1117]],
+    "Qwen3-4B":     [[90.9,1651],[83.4,1024],[83.4,1027],[72.5,535],[64.5,315]],
+    "Qwen3-14B":    [[93.4,2172],[92.0,1589],[92.4,1634],[85.5,1034],[83.5,928]],
+    "Qwen3-32B":    [[93.7,2150],[92.9,1823],[93.2,1845],[87.9,1231],[74.3,596]],
+    "Llama-3.1-8B": [[29.3,9],[31.2,2],[32.0,11],[36.3,0],[34.5,6]],
+    "Llama-3.3-70B":[[42.4,0],[47.9,0],[47.6,0],[54.1,0],[54.8,0]]
+  };
+  var TAUS = [0.1, 0.3, 0.5, 0.7, 0.9];
+  var PP = {
+    "Qwen3-1.7B":   [[88.8,2512],[89.0,2507],[88.3,2128],[81.6,1415],[47.9,293]],
+    "Qwen3-4B":     [[91.1,2216],[90.4,1707],[88.5,1309],[84.8,1026],[74.7,657]],
+    "Qwen3-14B":    [[94.3,2128],[94.1,1509],[92.4,1227],[85.8,907],[66.0,347]],
+    "Qwen3-32B":    [[94.0,1996],[93.2,1493],[90.1,1155],[82.3,896],[71.5,604]],
+    "Llama-3.1-8B": [[69.2,3027],[68.9,2770],[69.7,2381],[66.5,2146],[61.7,1753]],
+    "Llama-3.3-70B":[[88.4,2976],[88.6,2902],[88.3,2871],[88.6,2828],[89.2,2804]]
+  };
+  /* Table 3 */
+  var AUROC = [
+    ["Qwen3-1.7B", 0.894, 0.864, 0.831, 0.904],
+    ["Qwen3-4B", 0.948, 0.933, 0.906, 0.948],
+    ["Llama-3.1-8B", 0.927, 0.892, 0.867, 0.884],
+    ["Qwen3-14B", 0.957, 0.955, 0.907, 0.941],
+    ["Qwen3-32B", 0.952, 0.951, 0.903, 0.939],
+    ["Llama-3.3-70B", 0.936, 0.906, 0.849, 0.956]
+  ];
+  /* Table 4: accuracy cost per saved call, 6-model average, relative to Default */
+  var COST = { levels: ["쉬움", "중간", "어려움"], sparse: [-11.3, -16.9, -31.5], probe: [-1.6, -6.2, -3.4] };
+
+  var SER = {
+    po: { name: "Prompt-only (프롬프트만)", color: "var(--s-prompt)", shape: "circle" },
+    rta: { name: "Reason-then-Act (생각하고 행동)", color: "var(--s-rta)", shape: "square" },
+    pp: { name: "Probe&Prefill", color: "var(--s-probe)", shape: "diamond" }
+  };
+  var fmt = function (n) { return n.toLocaleString("ko-KR"); };
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function legend(id, keys) {
+    var box = document.getElementById(id);
+    box.innerHTML = keys.map(function (k) {
+      var s = SER[k];
+      return '<span><i style="background:' + s.color + (s.shape === "circle" ? ";border-radius:50%" : s.shape === "diamond" ? ";transform:rotate(45deg) scale(.85)" : "") + '"></i>' + s.name + "</span>";
+    }).join("");
+  }
+  function marker(g, shape, x, y, r, color, strong) {
+    var m;
+    if (shape === "circle") m = el("circle", { cx: x, cy: y, r: r }, g);
+    else if (shape === "square") m = el("rect", { x: x - r * 0.9, y: y - r * 0.9, width: r * 1.8, height: r * 1.8, rx: 2 }, g);
+    else m = el("rect", { x: x - r * 0.8, y: y - r * 0.8, width: r * 1.6, height: r * 1.6, rx: 1.5, transform: "rotate(45 " + x + " " + y + ")" }, g);
+    m.setAttribute("fill", color);
+    m.setAttribute("stroke", "#fff");
+    m.setAttribute("stroke-width", 2);
+    if (strong) { m.setAttribute("stroke", "var(--ink)"); m.setAttribute("stroke-width", 3); }
+    return m;
+  }
+
+  /* ---------- scatter: accuracy vs total tool calls ---------- */
+  function scatter(hostId, opt) {
+    var host = document.getElementById(hostId);
+    host.innerHTML = "";
+    var W = 700, H = 440, L = 58, R = 18, T = 14, B = 54;
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": opt.aria }, host);
+    var tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+    var model = opt.model;
+    var all = [].concat(PO[model], opt.rta ? RTA[model] : [], opt.pp ? PP[model] : []);
+    var maxX = Math.max.apply(null, all.map(function (d) { return d[1]; }));
+    var step = maxX > 4000 ? 1000 : 500;
+    maxX = Math.ceil(maxX / step) * step;
+    var x = function (v) { return L + (v / maxX) * (W - L - R); };
+    var y = function (v) { return T + (1 - v / 100) * (H - T - B); };
+    var g0 = el("g", {}, svg);
+    for (var a = 0; a <= 100; a += 20) {
+      el("line", { x1: L, x2: W - R, y1: y(a), y2: y(a), stroke: "#e6e9ef", "stroke-width": 1 }, g0);
+      el("text", { x: L - 10, y: y(a) + 5, "text-anchor": "end", "font-size": 14, fill: "#6b7189" }, g0).textContent = a + "%";
+    }
+    for (var c = 0; c <= maxX; c += step) {
+      el("text", { x: x(c), y: H - B + 22, "text-anchor": "middle", "font-size": 14, fill: "#6b7189" }, g0).textContent = fmt(c);
+    }
+    el("line", { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: "#4a5068", "stroke-width": 1.5 }, g0);
+    el("text", { x: (L + W - R) / 2, y: H - 6, "text-anchor": "middle", "font-size": 15, fill: "#4a5068" }, g0).textContent = "도구 호출 총 횟수 (2,250문제) · 왼쪽일수록 아낌";
+    el("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle", "font-size": 15, fill: "#4a5068", transform: "rotate(-90 14 " + ((T + H - B) / 2) + ")" }, g0).textContent = "정확도";
+
+    function series(key, data, labels, hiIdx) {
+      var s = SER[key];
+      var pts = data.map(function (d) { return [x(d[1]), y(d[0])]; });
+      el("polyline", { points: pts.map(function (p) { return p.join(","); }).join(" "), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-opacity": 0.55 }, svg);
+      var g = el("g", {}, svg);
+      data.forEach(function (d, i) {
+        var strong = i === hiIdx;
+        marker(g, s.shape, pts[i][0], pts[i][1], strong ? 9 : 6.5, s.color, strong);
+        var hit = el("circle", { cx: pts[i][0], cy: pts[i][1], r: 16, fill: "transparent" }, g);
+        hit.style.cursor = "default";
+        hit.addEventListener("mouseenter", function () {
+          tip.innerHTML = "<b>" + s.name + "</b><br>" + labels[i] + "<br>정확도 " + d[0] + "% · 호출 " + fmt(d[1]) + "번";
+          tip.style.left = Math.min(pts[i][0] + 14, W - 230) + "px";
+          tip.style.top = (pts[i][1] - 70) + "px";
+          tip.style.opacity = 1;
+        });
+        hit.addEventListener("mouseleave", function () { tip.style.opacity = 0; });
+      });
+      return pts;
+    }
+    var modeLabels = MODES.map(function (m) { return m.name; });
+    var poPts = series("po", PO[model], modeLabels, opt.poHi);
+    // label default point directly
+    var dp = poPts[1];
+    el("text", { x: dp[0] + 12, y: dp[1] + 22, "font-size": 14, "font-weight": 700, fill: "#1d2135" }, svg).textContent = "기본";
+    if (opt.rta) series("rta", RTA[model], modeLabels.map(function (n) { return n + " + 생각"; }), -1);
+    if (opt.pp) {
+      var ppPts = series("pp", PP[model], TAUS.map(function (t) { return "τ = " + t; }), opt.ppHi);
+      var hp = ppPts[opt.ppHi];
+      el("text", { x: hp[0] - 12, y: hp[1] - 14, "text-anchor": "end", "font-size": 14, "font-weight": 700, fill: "#1d2135" }, svg).textContent = "τ = " + TAUS[opt.ppHi];
+    }
+  }
+
+  /* ---------- slide 5: prompt-only ---------- */
+  var promptState = { model: "Qwen3-4B", mode: 3 };
+  function fillModelSelect(id, val, onChange) {
+    var s = document.getElementById(id);
+    s.innerHTML = MODELS.map(function (m) { return "<option" + (m === val ? " selected" : "") + ">" + m + "</option>"; }).join("");
+    s.addEventListener("change", function () { onChange(s.value); });
+  }
+  function renderPrompt() {
+    var m = promptState.model, i = promptState.mode;
+    scatter("chart-prompt", { model: m, rta: false, pp: false, poHi: i, aria: m + " 프롬프트 모드별 정확도와 도구 호출 수" });
+    var d = PO[m][i], base = PO[m][1];
+    document.getElementById("mode-quote").textContent = "시스템 프롬프트: " + MODES[i].quote;
+    document.getElementById("ro-prompt").textContent = d[0] + "% · " + fmt(d[1]) + "번";
+    var dTc = Math.round((d[1] - base[1]) / base[1] * 100);
+    document.getElementById("ro-prompt-l").textContent = i === 1 ? "정확도 · 도구 호출 (기준점)" :
+      "기본 대비 정확도 " + (d[0] - base[0] >= 0 ? "+" : "") + (d[0] - base[0]).toFixed(1) + "%p, 호출 " + (dTc >= 0 ? "+" : "") + dTc + "%";
+    Array.prototype.forEach.call(document.querySelectorAll("#modes-prompt button"), function (b, j) { b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+  }
+  document.getElementById("modes-prompt").innerHTML = MODES.map(function (m, j) { return '<button data-i="' + j + '">' + m.name + "</button>"; }).join("");
+  document.getElementById("modes-prompt").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    promptState.mode = +b.dataset.i; renderPrompt();
+  });
+  fillModelSelect("model-prompt", promptState.model, function (v) { promptState.model = v; renderPrompt(); });
+  legend("lg-prompt", ["po"]);
+  renderPrompt();
+
+  /* ---------- slide 11: tau slider ---------- */
+  var tauState = { model: "Qwen3-4B", i: 2 };
+  function renderTau() {
+    var m = tauState.model, i = tauState.i;
+    scatter("chart-tau", { model: m, rta: true, pp: true, poHi: -1, ppHi: i, aria: m + " Probe&Prefill 문턱값별 정확도와 도구 호출 수, 기존 방법과 비교" });
+    var d = PP[m][i], base = PO[m][1];
+    document.getElementById("tau-v").textContent = TAUS[i];
+    document.getElementById("ro-tau").textContent = d[0] + "% · " + fmt(d[1]) + "번";
+    var dTc = Math.round((d[1] - base[1]) / base[1] * 100);
+    document.getElementById("ro-tau-l").textContent = "지시 없는 기본 대비 정확도 " + (d[0] - base[0] >= 0 ? "+" : "") + (d[0] - base[0]).toFixed(1) + "%p, 호출 " + (dTc >= 0 ? "+" : "") + dTc + "%";
+    var note = "τ를 올리면 \"혼자 풀 수 있음\" 판정이 늘어 호출이 줄어든다.";
+    if (m.indexOf("Llama") === 0) note = m === "Llama-3.3-70B"
+      ? "이 모델은 soft prefill 문장을 거의 무시한다. τ를 돌려도 호출 수가 별로 안 움직인다. 출력 형식을 강제하는 hard prefill로 조절은 가능해졌지만, 정확도는 79.0%(τ=0.1)에서 33.9%(τ=0.9)까지 떨어졌다."
+      : "이 모델은 soft prefill 문장을 자주 무시한다. 정확도도 기본보다 낮다. 논문은 hard prefill로 τ=0.1에서 79.9%까지 회복했다.";
+    document.getElementById("tau-note").textContent = note;
+  }
+  var tauInput = document.getElementById("tau");
+  tauInput.addEventListener("input", function () { tauState.i = +tauInput.value; renderTau(); });
+  fillModelSelect("model-tau", tauState.model, function (v) { tauState.model = v; renderTau(); });
+  legend("lg-tau", ["po", "rta", "pp"]);
+  renderTau();
+
+  /* ---------- slide 9: AUROC dot plot (scale 0.5–1.0, chance at 0.5) ---------- */
+  (function () {
+    var host = document.getElementById("chart-auroc");
+    var W = 700, H = 400, L = 140, R = 40, T = 30, B = 46;
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "모델별 probe AUROC, 0.894에서 0.957" }, host);
+    var tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+    var x = function (v) { return L + (v - 0.5) / 0.5 * (W - L - R); };
+    var rowH = (H - T - B) / AUROC.length;
+    [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach(function (v) {
+      el("line", { x1: x(v), x2: x(v), y1: T - 10, y2: H - B, stroke: v === 0.5 ? "#4a5068" : "#e6e9ef", "stroke-width": v === 0.5 ? 1.5 : 1, "stroke-dasharray": v === 0.5 ? "4 4" : "" }, svg);
+      el("text", { x: x(v), y: H - B + 22, "text-anchor": "middle", "font-size": 14, fill: "#6b7189" }, svg).textContent = v.toFixed(1);
+    });
+    el("text", { x: x(0.5) + 6, y: T - 14, "font-size": 13, fill: "#4a5068" }, svg).textContent = "동전 던지기";
+    el("text", { x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle", "font-size": 15, fill: "#4a5068" }, svg).textContent = "AUROC (도구 필요 여부를 얼마나 잘 가려내나)";
+    AUROC.forEach(function (r, i) {
+      var cy = T + rowH * i + rowH / 2;
+      el("text", { x: L - 14, y: cy + 5, "text-anchor": "end", "font-size": 16, fill: "#1d2135" }, svg).textContent = r[0];
+      el("line", { x1: x(0.5), x2: x(r[1]), y1: cy, y2: cy, stroke: "#c9ced8", "stroke-width": 2 }, svg);
+            marker(svg, "circle", x(r[1]), cy, 9, "var(--s-probe)", false);
+      el("text", { x: x(r[1]) + 16, y: cy + 5, "font-size": 15, "font-weight": 700, fill: "#1d2135" }, svg).textContent = r[1].toFixed(3);
+      var hit = el("rect", { x: L, y: cy - rowH / 2, width: W - L - R, height: rowH, fill: "transparent" }, svg);
+      hit.addEventListener("mouseenter", function () {
+        tip.innerHTML = "<b>" + r[0] + "</b><br>전체 " + r[1] + "<br>쉬움 " + r[2] + " · 중간 " + r[3] + " · 어려움 " + r[4];
+        tip.style.left = (x(r[1]) - 220) + "px"; tip.style.top = (cy - 30) + "px"; tip.style.opacity = 1;
+      });
+      hit.addEventListener("mouseleave", function () { tip.style.opacity = 0; });
+    });
+  })();
+
+  /* ---------- slide 12: cost per saved call, grouped bars from zero ---------- */
+  (function () {
+    legend("lg-cost", ["po", "pp"]);
+    document.getElementById("lg-cost").innerHTML = document.getElementById("lg-cost").innerHTML.replace("Prompt-only (프롬프트만)", "\"아껴 써\" 프롬프트");
+    var host = document.getElementById("chart-cost");
+    var W = 560, H = 330, L = 70, R = 20, T = 10, B = 40;
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "절감 호출당 정확도 비용. 아껴 써 프롬프트 쉬움 -11.3 중간 -16.9 어려움 -31.5, Probe&Prefill 쉬움 -1.6 중간 -6.2 어려움 -3.4" }, host);
+    var y = function (v) { return T + (-v / 35) * (H - T - B); };
+    [0, -10, -20, -30].forEach(function (v) {
+      el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0 ? "#4a5068" : "#e6e9ef", "stroke-width": v === 0 ? 1.5 : 1 }, svg);
+      el("text", { x: L - 10, y: y(v) + 5, "text-anchor": "end", "font-size": 14, fill: "#6b7189" }, svg).textContent = v;
+    });
+    var gw = (W - L - R) / 3, bw = 54;
+    COST.levels.forEach(function (lv, i) {
+      var cx = L + gw * i + gw / 2;
+      [["sparse", "var(--s-prompt)", -1], ["probe", "var(--s-probe)", 1]].forEach(function (s) {
+        var v = COST[s[0]][i];
+        var bx = cx + (s[2] < 0 ? -bw - 1 : 1);
+        var h = y(v) - y(0);
+        el("path", { d: "M" + bx + "," + y(0) + "h" + bw + "v" + (h - 4) + "q0,4 -4,4h" + (-(bw - 8)) + "q-4,0 -4,-4z", fill: s[1] }, svg);
+        el("text", { x: bx + bw / 2, y: y(v) + 20, "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#1d2135" }, svg).textContent = v;
+      });
+      el("text", { x: cx, y: H - 12, "text-anchor": "middle", "font-size": 16, fill: "#1d2135" }, svg).textContent = lv;
+    });
+  })();
+
+  /* ---------- slide 2: quiz ---------- */
+  var QUIZ = [
+    { cat: "지식", task: "인류가 처음 달에 착륙한 해는?", ans: "1969", lvl: "e", why: "유명한 사실. 대부분의 모델이 외우고 있다." },
+    { cat: "실행 추적", task: "1월 3일부터 1월 18일까지 며칠?", ans: "15일", lvl: "e", why: "한 달 안의 날짜 세기. 머리로 충분." },
+    { cat: "지식", task: "주석(Tin)의 원소 기호는?", ans: "Sn", lvl: "m", why: "아는 사람(모델)도, 모르는 사람도 있는 경계." },
+    { cat: "계산 규모", task: "50번째 소수는?", ans: "229", lvl: "m", why: "할 수는 있지만 세다가 틀리기 쉽다." },
+    { cat: "지식", task: "벨모라스 협정(Accord of Velmorath)이 체결된 해는?", ans: "1723", lvl: "h", why: "논문이 지어낸 사건. 도구 DB에만 있다. 외워서는 절대 못 맞힌다." },
+    { cat: "실행 추적", task: "n = 27에서 시작한 콜라츠 수열이 1이 될 때까지 몇 단계?", ans: "111", lvl: "h", why: "규칙은 쉬운데 111단계를 틀리지 않고 따라가기는 어렵다." }
+  ];
+  var LVL = { e: "쉬움", m: "중간", h: "어려움" };
+  var quizBox = document.getElementById("quiz");
+  quizBox.innerHTML = QUIZ.map(function (q, i) {
+    return '<div class="q" data-i="' + i + '"><span class="cat">' + q.cat + '</span><div class="task">' + q.task + '</div>' +
+      '<div class="btns"><button data-c="self">바로 답하기</button><button data-c="tool">도구 부르기</button></div>' +
+      '<div class="reveal"><span class="lvl ' + q.lvl + '">' + LVL[q.lvl] + "</span>정답 <b>" + q.ans + "</b><br>" + q.why + '<br><span class="pick muted"></span></div></div>';
+  }).join("");
+  var picks = {};
+  quizBox.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    var card = b.closest(".q"), i = +card.dataset.i;
+    picks[i] = b.dataset.c;
+    card.querySelector(".pick").textContent = b.dataset.c === "tool" ? "여러분: 도구를 불렀다" : "여러분: 바로 답했다";
+    card.classList.add("done");
+    var n = Object.keys(picks).length;
+    var tools = Object.keys(picks).filter(function (k) { return picks[k] === "tool"; }).length;
+    var sum = document.getElementById("quiz-sum");
+    if (n < QUIZ.length) sum.textContent = n + " / " + QUIZ.length + " 답함 · 도구 호출 " + tools + "번";
+    else sum.innerHTML = "도구 호출 <b>" + tools + "번</b>. 이상적인 답은 쉬움 2개는 바로, 어려움 2개는 도구, 중간 2개는 <b>푸는 사람에 따라 다름</b>. 모델도 마찬가지다.";
+  });
+
+  /* ---------- deck navigation ---------- */
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var cur = 0, timers = [];
+  var notes = document.getElementById("notes");
+  slides.forEach(function (s, i) {
+    Array.prototype.forEach.call(s.querySelectorAll(".pg"), function (p) { p.textContent = (i + 1) + " / " + slides.length; });
+  });
+  function fit() {
+    var s = Math.min(window.innerWidth / 1320, (window.innerHeight - 44) / 760);
+    document.getElementById("stage").style.transform = "scale(" + s + ") translateY(-10px)";
+  }
+  function play(slide) {
+    timers.forEach(clearTimeout); timers = [];
+    var steps = slide.querySelectorAll(".step");
+    Array.prototype.forEach.call(steps, function (st) { st.classList.remove("on"); });
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    Array.prototype.forEach.call(steps, function (st, i) {
+      if (reduce) st.classList.add("on");
+      else timers.push(setTimeout(function () { st.classList.add("on"); }, 350 + i * 700));
+    });
+    Array.prototype.forEach.call(slide.querySelectorAll(".hbar .fill"), function (f) {
+      f.style.width = "0";
+      var max = +(f.dataset.max || 1500);
+      timers.push(setTimeout(function () { f.style.width = (+f.dataset.w / max * 100) + "%"; }, reduce ? 0 : 500));
+    });
+  }
+  function go(i, push) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    slides[cur].classList.remove("active");
+    cur = i;
+    slides[cur].classList.add("active");
+    document.getElementById("progress").style.width = ((cur + 1) / slides.length * 100) + "%";
+    document.getElementById("bar-pg").textContent = (cur + 1) + " / " + slides.length;
+    document.getElementById("bar-title").textContent = slides[cur].dataset.title || "";
+    var n = slides[cur].querySelector("aside.notes");
+    notes.innerHTML = n ? n.innerHTML : "";
+    if (push !== false) history.replaceState(null, "", "#" + (cur + 1));
+    play(slides[cur]);
+  }
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "SELECT")) return;
+    if (["ArrowRight", "PageDown", " "].indexOf(e.key) >= 0) { e.preventDefault(); go(cur + 1); }
+    else if (["ArrowLeft", "PageUp"].indexOf(e.key) >= 0) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
+    else if (e.key === "f" || e.key === "F") toggleFull();
+  });
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+    else document.exitFullscreen && document.exitFullscreen();
+  }
+  document.getElementById("btn-next").onclick = function () { go(cur + 1); };
+  document.getElementById("btn-prev").onclick = function () { go(cur - 1); };
+  document.getElementById("btn-notes").onclick = function () { notes.classList.toggle("on"); };
+  document.getElementById("btn-full").onclick = toggleFull;
+  var tx = null;
+  document.addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx; tx = null;
+    if (Math.abs(dx) > 60) go(cur + (dx < 0 ? 1 : -1));
+  });
+  window.addEventListener("resize", fit);
+  window.addEventListener("hashchange", function () { var h = parseInt(location.hash.slice(1), 10); if (h && h - 1 !== cur) go(h - 1, false); });
+  fit();
+  var start = parseInt(location.hash.slice(1), 10);
+  slides[0].classList.add("active");
+  go(start ? start - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

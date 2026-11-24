@@ -1,0 +1,9 @@
+# When2Tool 읽기: 달 착륙 연도도 검색해 보는 에이전트
+
+논문 [LLM Agents Already Know When to Call Tools — Even Without Reasoning](https://arxiv.org/abs/2605.09252) (Sun et al., 2026, v4 기준)을 소개하는 인터랙티브 발표 자료입니다. AI 에이전트를 만들어 본 사람을 위한 가벼운 발표용.
+
+## 보는 법
+
+- `index.html` 하나로 동작합니다. GitHub Pages나 아무 정적 서버에서 열면 됩니다.
+- ← → / Space: 슬라이드 이동 · N: 발표자 노트 · F: 전체화면 · URL `#5`로 특정 슬라이드 바로 가기
+- 차트의 수치는 논문 Table 3, 4, 8에서 그대로 옮겼습니다.
