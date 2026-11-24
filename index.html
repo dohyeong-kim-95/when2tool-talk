@@ -69,9 +69,10 @@ sup.fn { font-family: var(--body); font-size: 0.42em; vertical-align: 1.1em; mar
 .pv-tokens { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
 .pv-tokens span { font-size: 15px; padding: 3px 7px; border-radius: 5px; background: #eef0f4; border: 1.5px solid transparent; }
 .pv-tokens span.last { border-color: var(--s-probe); background: #e3f6ee; font-weight: 700; }
-.pv-heat { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
-.pv-heat i, .pv-w i { display: block; aspect-ratio: 1; border-radius: 2px; transition: background .4s; }
-.pv-w { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+#pv-net { width: 100%; height: auto; display: block; }
+.pv-vec { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
+.pv-vec i { display: block; aspect-ratio: 1; border-radius: 2px; transition: background .4s; }
+.pv-lbl { font-size: 12px; color: var(--muted); margin-bottom: -4px; }
 #pv-sig { width: 100%; height: auto; display: block; }
 .pv-gauge { position: relative; height: 26px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; margin-top: 6px; }
 .pv-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--s-probe); transition: width .6s; }
@@ -454,13 +455,16 @@ aside.notes { display: none; }
       <div class="pv-arrow">→</div>
       <div class="pv-panel" data-s="2">
         <b>2. 마지막 토큰의 hidden state</b>
-        <div class="pv-heat" id="pv-h" aria-hidden="true"></div>
-        <p class="pv-cap">세로는 레이어, 가로는 차원. 모든 레이어를 이어 붙여 벡터 h 하나로 만든다.</p>
+        <svg id="pv-net" viewBox="0 0 240 206" aria-hidden="true"></svg>
+        <p class="pv-cap">세로 한 줄이 레이어 하나, 점이 유닛. 점의 색이 마지막 토큰을 읽었을 때 그 유닛의 값이다.</p>
       </div>
       <div class="pv-arrow">→</div>
       <div class="pv-panel" data-s="3">
         <b>3. 로지스틱 회귀</b>
-        <div class="pv-w" id="pv-w" aria-hidden="true"></div>
+        <span class="pv-lbl">h: 모든 레이어의 값을 이어 붙인 벡터</span>
+        <div class="pv-vec" id="pv-hv" aria-hidden="true"></div>
+        <span class="pv-lbl">w: 학습된 가중치</span>
+        <div class="pv-vec" id="pv-w" aria-hidden="true"></div>
         <svg id="pv-sig" viewBox="0 0 240 100" aria-hidden="true"></svg>
         <p class="pv-cap" id="pv-z"></p>
       </div>
@@ -472,7 +476,7 @@ aside.notes { display: none; }
         <div class="pv-prefill" id="pv-prefill"></div>
       </div>
     </div>
-    <p class="muted" style="margin-top:8px; font-size:14px">그림 값은 설명용. 실제 h는 94,720차원(Qwen3-4B)이고 여기선 8 레이어 × 16 차원만, 토큰도 단어 단위로 단순화해서 그렸다.</p>
+    <p class="muted" style="margin-top:8px; font-size:14px">그림 값은 설명용. 실제 h는 94,720차원(Qwen3-4B)이고 여기선 8 레이어 × 유닛 10개만, 토큰도 단어 단위로 단순화해서 그렸다.</p>
     <p class="pv-facts">학습 예시 <b>900개</b>, CPU에서 몇 초 (90개만 써도 AUROC 0.81 이상) · probe 입력 <b>94,720차원</b> (Qwen3-4B) · 추가 지연 <b>0.7ms 이하</b>, 추가 forward pass 없음</p>
     <div class="gloss" style="margin-top:10px; padding:10px 16px">
       <p><b>AUROC</b>: 도구가 필요한 문제와 아닌 문제를 probe가 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
@@ -1019,12 +1023,12 @@ aside.notes { display: none; }
       { label: "중간", text: "50번째 소수는?", p: 0.56 },
       { label: "어려움", text: "벨모라스 협정이 체결된 해는?", p: 0.96 }
     ];
-    var ROWS = 8, COLS = 16, N = ROWS * COLS;
+    var LAYERS = 8, UNITS = 10, N = LAYERS * UNITS;
     function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
     // fixed probe weights: mostly small, a few strong directions
     var r0 = rng(7), W = [];
     for (var i = 0; i < N; i++) W.push((r0() - 0.5) * 0.4);
-    [5, 22, 41, 60, 77, 90, 103, 118].forEach(function (k, j) { W[k] = j % 3 === 2 ? -1 : 1; });
+    [3, 17, 24, 38, 46, 59, 65, 77].forEach(function (k, j) { W[k] = j % 3 === 2 ? -1 : 1; });
     function col(v) { // diverging: navy (−) · light gray (0) · yellow (+)
       var a = Math.min(1, Math.abs(v));
       var c0 = [238, 240, 244], c1 = v < 0 ? [29, 33, 53] : [255, 210, 63];
@@ -1041,7 +1045,16 @@ aside.notes { display: none; }
       // hidden state: noise + signal aligned with W, sign set by how "tool-needy" the question is
       var r = rng(101 + qi * 31), H = [], z = 0, sgn = q.p - 0.5;
       for (var i = 0; i < N; i++) { var h = (r() - 0.5) * 1.1 + W[i] * sgn * 1.6; h = Math.max(-1, Math.min(1, h)); H.push(h); }
-      document.getElementById("pv-h").innerHTML = H.map(function (h) { return '<i style="background:' + col(h) + '"></i>'; }).join("");
+      // dense-layer picture: columns = layers, dots = units, every adjacent pair fully connected
+      var net = document.getElementById("pv-net"), nx = function (l) { return 14 + l * (212 / (LAYERS - 1)); }, ny = function (u) { return 12 + u * (166 / (UNITS - 1)); };
+      var lines = "", dots = "";
+      for (var l = 0; l < LAYERS - 1; l++) for (var a = 0; a < UNITS; a++) for (var b2 = 0; b2 < UNITS; b2++)
+        lines += "M" + nx(l) + "," + ny(a).toFixed(1) + "L" + nx(l + 1) + "," + ny(b2).toFixed(1);
+      for (var l2 = 0; l2 < LAYERS; l2++) for (var u = 0; u < UNITS; u++)
+        dots += '<circle cx="' + nx(l2) + '" cy="' + ny(u).toFixed(1) + '" r="5.5" fill="' + col(H[l2 * UNITS + u]) + '" stroke="rgba(29,33,53,.35)" stroke-width=".8"/>';
+      net.innerHTML = '<path d="' + lines + '" stroke="#b9bfcc" stroke-width=".5" stroke-opacity=".28" fill="none"/>' + dots +
+        '<text x="4" y="202" font-size="11" fill="#6b7189">레이어 1</text><text x="236" y="202" font-size="11" fill="#6b7189" text-anchor="end">레이어 8</text>';
+      document.getElementById("pv-hv").innerHTML = H.map(function (h) { return '<i style="background:' + col(h) + '"></i>'; }).join("");
       document.getElementById("pv-w").innerHTML = W.map(function (w) { return '<i style="background:' + col(w) + '"></i>'; }).join("");
       z = Math.log(q.p / (1 - q.p));
       document.getElementById("pv-z").innerHTML = "학습된 가중치 w(위)와 h를 곱해 더하면 <b>z = " + z.toFixed(1) + "</b>. 시그모이드가 0~1로 눌러 준다.";
