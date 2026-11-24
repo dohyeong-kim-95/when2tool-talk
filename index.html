@@ -57,6 +57,32 @@ body {
 .footnote { font-size: 14px; line-height: 1.5; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
 sup.fn { font-family: var(--body); font-size: 0.42em; vertical-align: 1.1em; margin-left: 4px; color: var(--ink-2); }
 .nw { white-space: nowrap; }
+.pv-controls { display: flex; align-items: center; gap: 12px; margin: -6px 0 12px; }
+.pv-controls .btns button { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
+.pv { display: flex; gap: 8px; align-items: stretch; }
+.pv-arrow { align-self: center; font-size: 22px; color: var(--ink-2); }
+.pv-panel { flex: 1; min-width: 0; border: 2px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; opacity: .28; transition: opacity .35s, border-color .35s; cursor: pointer; }
+.pv-panel.on { opacity: 1; border-color: var(--ink); }
+.pv-panel.now { box-shadow: 0 0 0 3px var(--tape); }
+.pv-panel > b { font-size: 17px; }
+.pv-cap { font-size: 14px !important; line-height: 1.45 !important; color: var(--ink-2); margin-top: auto !important; }
+.pv-tokens { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+.pv-tokens span { font-size: 15px; padding: 3px 7px; border-radius: 5px; background: #eef0f4; border: 1.5px solid transparent; }
+.pv-tokens span.last { border-color: var(--s-probe); background: #e3f6ee; font-weight: 700; }
+.pv-heat { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.pv-heat i, .pv-w i { display: block; aspect-ratio: 1; border-radius: 2px; transition: background .4s; }
+.pv-w { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+#pv-sig { width: 100%; height: auto; display: block; }
+.pv-gauge { position: relative; height: 26px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; margin-top: 6px; }
+.pv-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--s-probe); transition: width .6s; }
+.pv-tau { position: absolute; top: -2px; bottom: -2px; left: 50%; border-left: 2px dashed var(--ink); }
+.pv-tau span { position: absolute; left: 6px; top: 3px; font-size: 12px; font-weight: 700; }
+.pv-p { font-family: var(--display); font-size: 40px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pv-prefill { font-size: 15px; line-height: 1.4; padding: 8px 10px; border-radius: 8px; border: 2px solid var(--s-probe); background: #e3f6ee; }
+.pv-prefill.need { border-color: var(--ink); background: #fff8dc; }
+.pv-facts { font-size: 17px !important; margin-top: 12px !important; }
+.pv-stats .n { font-size: 34px; }
+.pv-stats .l { font-size: 15px; margin-top: 4px; }
 button.jump { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
 .gloss { display: flex; align-items: center; gap: 16px; margin-top: 40px; padding: 14px 18px; background: #f3f4f7; border-radius: 10px; }
 .gloss p { font-size: 18px; }
@@ -72,6 +98,10 @@ button.jump { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
 .scale .tick { position: absolute; top: 6px; transform: translateX(-50%); font-size: 13px; color: var(--muted); white-space: nowrap; }
 .scale .pin { position: absolute; top: -13px; width: 4px; height: 24px; background: var(--ink); transform: translateX(-50%); transition: left .3s; border-radius: 2px; }
 .scale .pinlbl { position: absolute; top: -40px; transform: translateX(-50%); font-size: 14px; font-weight: 700; white-space: nowrap; transition: left .3s; }
+.pp-probe { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ink-2); }
+.pp-probe .pv-gauge { flex: 1; margin: 0; height: 20px; }
+.pp-probe b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.msg.prefill.need { background: #fff8dc; border-color: var(--ink); }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
 
 h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
@@ -394,26 +424,46 @@ aside.notes { display: none; }
 </section>
 
 <!-- 8 · Probe -->
-<section class="slide" data-title="독심술">
+<section class="slide" data-title="독심술" id="probe-slide">
   <div class="body">
     <h2>독심술: 답을 쓰기 전에 머릿속을 들여다본다</h2>
-    <div class="pipe">
-      <div class="pnode"><b>문제를 읽는다</b>프롬프트를 모델에 한 번 통과 (원래 답 쓰기 전에 하는 계산)</div>
-      <div class="parrow">→</div>
-      <div class="pnode"><b>마지막 토큰의 hidden state</b>모든 레이어 값을 이어 붙인 벡터 하나
-        <div class="layers" aria-hidden="true"><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i></div>
+    <div class="pv-controls">
+      <span class="small muted">문제</span>
+      <div class="btns" id="pv-q"></div>
+      <span style="flex:1"></span>
+      <button id="pv-next" class="jump">다음 단계</button>
+      <button id="pv-replay" class="jump">처음부터</button>
+    </div>
+    <div class="pv">
+      <div class="pv-panel" data-s="1">
+        <b>1. 문제를 읽는다</b>
+        <div class="pv-tokens" id="pv-tokens"></div>
+        <p class="pv-cap">프롬프트를 한 번 통과시킨다. 답을 쓰기 전에 원래 하는 계산이다.</p>
       </div>
-      <div class="parrow">→</div>
-      <div class="pnode"><b>로지스틱 회귀 하나</b><code>p = σ(w·h + b)</code><br>모델은 그대로, w와 b만 학습 (실제로는 표준화와 온도 T=2 포함)</div>
-      <div class="parrow">→</div>
-      <div class="pnode" style="border-color:var(--s-probe); background:#eefaf4"><b>p = 도구 필요 확률</b>답은 아직 한 글자도 안 씀</div>
+      <div class="pv-arrow">→</div>
+      <div class="pv-panel" data-s="2">
+        <b>2. 마지막 토큰의 hidden state</b>
+        <div class="pv-heat" id="pv-h" aria-hidden="true"></div>
+        <p class="pv-cap">세로는 레이어, 가로는 차원. 모든 레이어를 이어 붙여 벡터 h 하나로 만든다.</p>
+      </div>
+      <div class="pv-arrow">→</div>
+      <div class="pv-panel" data-s="3">
+        <b>3. 로지스틱 회귀</b>
+        <div class="pv-w" id="pv-w" aria-hidden="true"></div>
+        <svg id="pv-sig" viewBox="0 0 240 100" aria-hidden="true"></svg>
+        <p class="pv-cap" id="pv-z"></p>
+      </div>
+      <div class="pv-arrow">→</div>
+      <div class="pv-panel" data-s="4">
+        <b>4. p = 도구 필요 확률</b>
+        <div class="pv-gauge"><div class="pv-fill" id="pv-fill"></div><div class="pv-tau"><span>τ 0.5</span></div></div>
+        <div class="pv-p" id="pv-p"></div>
+        <div class="pv-prefill" id="pv-prefill"></div>
+      </div>
     </div>
-    <div class="stat-row" style="margin-top:64px">
-      <div class="stat"><div class="n">900개</div><div class="l">학습 예시. CPU에서 몇 초.<br>90개만 써도 AUROC 0.81 이상</div></div>
-      <div class="stat"><div class="n">94,720</div><div class="l">Qwen3-4B의 probe 입력 차원<br>(37 레이어 × 2,560)</div></div>
-      <div class="stat"><div class="n">0.7ms</div><div class="l">추가 지연 상한 (6개 모델).<br>추가 forward pass는 없다</div></div>
-    </div>
-    <div class="gloss">
+    <p class="muted" style="margin-top:8px; font-size:14px">그림 값은 설명용. 실제 h는 94,720차원(Qwen3-4B)이고 여기선 8 레이어 × 16 차원만, 토큰도 단어 단위로 단순화해서 그렸다.</p>
+    <p class="pv-facts">학습 예시 <b>900개</b>, CPU에서 몇 초 (90개만 써도 AUROC 0.81 이상) · probe 입력 <b>94,720차원</b> (Qwen3-4B) · 추가 지연 <b>0.7ms 이하</b>, 추가 forward pass 없음</p>
+    <div class="gloss" style="margin-top:10px; padding:10px 16px">
       <p><b>AUROC</b>: 도구가 필요한 문제와 아닌 문제를 probe가 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
       <button class="jump" data-goto="A1">자세히 (부록 A1)</button>
     </div>
@@ -456,15 +506,13 @@ aside.notes { display: none; }
   <div class="body">
     <h2>처방: probe의 판단을 응답 첫 문장으로 대신 써 준다</h2>
     <div class="row" style="flex:1">
-      <div class="col">
-        <div class="chat">
-          <div class="msg user"><span class="who">사용자</span>1월 3일부터 1월 18일까지 며칠이야?</div>
-          <div class="msg bot prefill"><span class="who">에이전트 응답의 첫 문장 (probe가 p &lt; τ라서 끼워 넣음)</span>I can solve this directly without using a tool.</div>
-          <div class="msg bot"><span class="who">모델이 이어서 씀</span>1월 18일 − 1월 3일 = \boxed{15}</div>
+      <div class="col" id="pp-demo" style="flex:1.15; gap:12px">
+        <div class="btns" id="pp-case">
+          <button data-c="0" aria-pressed="true">날짜 세기 (쉬움)</button>
+          <button data-c="1">콜라츠 27 (어려움)</button>
         </div>
-        <div class="chat" style="margin-top:6px">
-          <div class="msg bot prefill" style="background:#fff8dc;border-color:var(--ink)"><span class="who">p ≥ τ면 이 문장을 끼워 넣음</span>I need to use a tool for this question.</div>
-        </div>
+        <div class="chat" id="pp-chat"></div>
+        <p class="muted" style="font-size:14px; margin-top:auto">p 값은 설명용. 문제는 논문 DateTimeEnv·CodeExecutorEnv 예시, 콜라츠 27의 정답은 111단계.</p>
       </div>
       <div class="col" style="gap:18px">
         <div class="card"><h3>재학습 없음</h3><p>모델 가중치도, forward pass도 건드리지 않는다. 응답 앞부분만 미리 채운다(prefill).</p></div>
@@ -950,6 +998,114 @@ aside.notes { display: none; }
     });
   }
   window.__keepWords = keepWords;
+
+  /* ---------- slide 8: probe pipeline, step by step ---------- */
+  var probeViz = (function () {
+    var QS = [
+      { label: "쉬움", text: "인류가 처음 달에 착륙한 해는?", p: 0.07 },
+      { label: "중간", text: "50번째 소수는?", p: 0.56 },
+      { label: "어려움", text: "벨모라스 협정이 체결된 해는?", p: 0.96 }
+    ];
+    var ROWS = 8, COLS = 16, N = ROWS * COLS;
+    function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    // fixed probe weights: mostly small, a few strong directions
+    var r0 = rng(7), W = [];
+    for (var i = 0; i < N; i++) W.push((r0() - 0.5) * 0.4);
+    [5, 22, 41, 60, 77, 90, 103, 118].forEach(function (k, j) { W[k] = j % 3 === 2 ? -1 : 1; });
+    function col(v) { // diverging: navy (−) · light gray (0) · yellow (+)
+      var a = Math.min(1, Math.abs(v));
+      var c0 = [238, 240, 244], c1 = v < 0 ? [29, 33, 53] : [255, 210, 63];
+      return "rgb(" + c0.map(function (c, k) { return Math.round(c + (c1[k] - c) * a); }).join(",") + ")";
+    }
+    var qi = 0, stepN = 4, tmr = [];
+    var qBox = document.getElementById("pv-q");
+    qBox.innerHTML = QS.map(function (q, i) { return '<button data-i="' + i + '">' + q.label + "</button>"; }).join("");
+    function render() {
+      var q = QS[qi];
+      Array.prototype.forEach.call(qBox.querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === qi ? "true" : "false"); });
+      var toks = q.text.replace("?", " ?").split(" ");
+      document.getElementById("pv-tokens").innerHTML = toks.map(function (t, i) { return '<span class="nw' + (i === toks.length - 1 ? " last" : "") + '">' + t + "</span>"; }).join("");
+      // hidden state: noise + signal aligned with W, sign set by how "tool-needy" the question is
+      var r = rng(101 + qi * 31), H = [], z = 0, sgn = q.p - 0.5;
+      for (var i = 0; i < N; i++) { var h = (r() - 0.5) * 1.1 + W[i] * sgn * 1.6; h = Math.max(-1, Math.min(1, h)); H.push(h); }
+      document.getElementById("pv-h").innerHTML = H.map(function (h) { return '<i style="background:' + col(h) + '"></i>'; }).join("");
+      document.getElementById("pv-w").innerHTML = W.map(function (w) { return '<i style="background:' + col(w) + '"></i>'; }).join("");
+      z = Math.log(q.p / (1 - q.p));
+      document.getElementById("pv-z").innerHTML = "학습된 가중치 w(위)와 h를 곱해 더하면 <b>z = " + z.toFixed(1) + "</b>. 시그모이드가 0~1로 눌러 준다.";
+      // sigmoid
+      var svg = document.getElementById("pv-sig"), Wd = 240, Hd = 100, x = function (v) { return 10 + (v + 6) / 12 * (Wd - 20); }, y = function (v) { return 8 + (1 - v) * (Hd - 28); };
+      var d = ""; for (var t = -6; t <= 6.01; t += 0.25) d += (t === -6 ? "M" : "L") + x(t).toFixed(1) + "," + y(1 / (1 + Math.exp(-t))).toFixed(1);
+      svg.innerHTML = '<line x1="10" x2="230" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#c9ced8"/><line x1="' + x(0) + '" x2="' + x(0) + '" y1="4" y2="' + y(0) + '" stroke="#e6e9ef"/>' +
+        '<line x1="10" x2="230" y1="' + y(0.5) + '" y2="' + y(0.5) + '" stroke="#1d2135" stroke-dasharray="4 3" stroke-width="1"/>' +
+        '<path d="' + d + '" fill="none" stroke="#1d2135" stroke-width="2"/>' +
+        '<circle cx="' + x(z) + '" cy="' + y(q.p) + '" r="6" fill="#1baf7a" stroke="#fff" stroke-width="2"/>' +
+        '<text x="' + x(-6) + '" y="' + (Hd - 6) + '" font-size="11" fill="#6b7189">z = −6</text><text x="' + x(6) + '" y="' + (Hd - 6) + '" font-size="11" fill="#6b7189" text-anchor="end">+6</text>' +
+        '<text x="' + x(-6) + '" y="' + (y(0.5) - 4) + '" font-size="11" fill="#1d2135">τ 0.5</text>';
+      document.getElementById("pv-fill").style.width = (q.p * 100) + "%";
+      document.getElementById("pv-p").textContent = "p = " + q.p.toFixed(2);
+      var pf = document.getElementById("pv-prefill"), tool = q.p >= 0.5;
+      pf.className = "pv-prefill" + (tool ? " need" : "");
+      pf.innerHTML = (tool ? "p ≥ τ → 첫 문장:<br><b>I need to use a tool for this question.</b>" : "p &lt; τ → 첫 문장:<br><b>I can solve this directly without using a tool.</b>");
+      keepWords(document.getElementById("pv-z")); keepWords(pf);
+      paint();
+    }
+    function paint() {
+      Array.prototype.forEach.call(document.querySelectorAll("#probe-slide .pv-panel"), function (p) {
+        var k = +p.dataset.s; p.classList.toggle("on", k <= stepN); p.classList.toggle("now", k === stepN && stepN < 4);
+      });
+      document.getElementById("pv-next").disabled = stepN >= 4;
+    }
+    function start(auto) {
+      tmr.forEach(clearTimeout); tmr = [];
+      stepN = 1; paint();
+      if (auto && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        [2, 3, 4].forEach(function (k, j) { tmr.push(setTimeout(function () { stepN = k; paint(); }, 900 * (j + 1))); });
+      } else if (auto) { stepN = 4; paint(); }
+    }
+    qBox.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; qi = +b.dataset.i; render(); start(true); });
+    document.getElementById("pv-next").addEventListener("click", function () { tmr.forEach(clearTimeout); stepN = Math.min(4, stepN + 1); paint(); });
+    document.getElementById("pv-replay").addEventListener("click", function () { start(false); });
+    Array.prototype.forEach.call(document.querySelectorAll("#probe-slide .pv-panel"), function (p) {
+      p.addEventListener("click", function () { tmr.forEach(clearTimeout); stepN = +p.dataset.s; paint(); });
+    });
+    render();
+    return { enter: function () { start(false); } };
+  })();
+
+  /* ---------- slide 10: two cases through Probe&Prefill ---------- */
+  var ppDemo = (function () {
+    var CASES = [
+      { q: "1월 3일부터 1월 18일까지 며칠이야?", p: 0.12,
+        rest: ['<div class="msg bot"><span class="who">모델이 이어서 씀</span>1월 18일 − 1월 3일 = \\boxed{15}</div>'] },
+      { q: "n = 27에서 시작한 콜라츠 수열이 1이 될 때까지 몇 단계?", p: 0.93,
+        rest: ['<div><span class="tool">run_python("n=27; steps=0; while n!=1: ...")</span></div>',
+               '<div class="msg toolres">→ 111</div>',
+               '<div class="msg bot"><span class="who">모델이 이어서 씀</span>\\boxed{111}</div>'] }
+    ];
+    var ci = 0, tm = [];
+    var box = document.getElementById("pp-chat"), sw = document.getElementById("pp-case");
+    function render(animate) {
+      tm.forEach(clearTimeout); tm = [];
+      var c = CASES[ci], need = c.p >= 0.5;
+      Array.prototype.forEach.call(sw.querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === ci ? "true" : "false"); });
+      var parts = [
+        '<div class="msg user"><span class="who">사용자</span>' + c.q + "</div>",
+        '<div class="pp-probe"><span>probe</span><div class="pv-gauge"><div class="pv-fill" style="width:' + (c.p * 100) + '%"></div><div class="pv-tau"><span>τ 0.5</span></div></div><span>p = <b>' + c.p.toFixed(2) + "</b></span></div>",
+        '<div class="msg bot prefill' + (need ? " need" : "") + '"><span class="who">첫 문장은 우리가 대신 씀 (p ' + (need ? "≥" : "&lt;") + " τ)</span>" +
+          (need ? "I need to use a tool for this question." : "I can solve this directly without using a tool.") + "</div>"
+      ].concat(c.rest);
+      box.innerHTML = parts.map(function (h) { return '<div class="step">' + h + "</div>"; }).join("");
+      keepWords(box);
+      var steps = box.querySelectorAll(".step");
+      var reduce = !animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      Array.prototype.forEach.call(steps, function (st, i) {
+        if (reduce) st.classList.add("on"); else tm.push(setTimeout(function () { st.classList.add("on"); }, 200 + i * 650));
+      });
+    }
+    sw.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; ci = +b.dataset.c; render(true); });
+    render(false);
+    return { enter: function () { render(true); } };
+  })();
   /* ---------- appendix A1: AUROC playground ---------- */
   (function () {
     var P = [0.05, 0.14, 0.27, 0.41, 0.47, 0.66, 0.81, 0.93];
@@ -1009,6 +1165,8 @@ aside.notes { display: none; }
   }
   function play(slide) {
     timers.forEach(clearTimeout); timers = [];
+    if (slide.id === "probe-slide") probeViz.enter();
+    if (slide.querySelector("#pp-demo")) ppDemo.enter();
     var steps = slide.querySelectorAll(".step");
     Array.prototype.forEach.call(steps, function (st) { st.classList.remove("on"); });
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
