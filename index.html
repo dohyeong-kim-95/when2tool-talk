@@ -199,6 +199,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .quiz-sum { margin-top: 14px; font-size: 20px; min-height: 30px; }
 
 /* bars (simple, horizontal) */
+.xfer { flex: 1; display: grid; grid-template-columns: 620px 1fr; gap: 44px; align-items: center; }
+.xfer h3 { margin-bottom: 10px; }
+.xfer svg { display: block; width: 100%; height: auto; }
+.xfer-legend { margin-bottom: 8px; }
+.xfer-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 15px; color: var(--ink-2); margin-bottom: 2px; }
+.xfer-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.xfer-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+.xfer-legend .k-move { background: var(--ink); }
+.xfer-legend .k-new { border: 2.5px solid var(--ink-2); background: #fff; width: 12px; height: 12px; }
+.xfer-legend .k-own { border-radius: 0; width: 3px; height: 14px; background: #0e7a55; }
+.xfer-legend .k-band { border-radius: 3px; width: 16px; background: rgba(27,175,122,.22); }
+.xfer-text li { font-size: 19px; line-height: 1.5; }
+ul.plain.xfer-text { gap: 14px; }
 .hbar { display: grid; grid-template-columns: 180px 1fr 90px; gap: 14px; align-items: center; font-size: 18px; }
 .hbar .track { position: relative; height: 28px; }
 .hbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ink); transition: width .9s cubic-bezier(.2,.7,.2,1); }
@@ -639,7 +652,7 @@ aside.notes { display: none; }
       </div>
       <div class="col" style="gap:18px">
         <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
-        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2%. 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
         <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA도 그대로.</p></div>
       </div>
     </div>
@@ -666,20 +679,43 @@ aside.notes { display: none; }
       <div class="col">
         <h3>아직 열린 질문</h3>
         <ul class="plain">
-          <li>When2Tool로 학습한 probe를 실제 QA에 그대로 옮기면 AUROC <b>0.67–0.80</b>. 깔끔한 벤치마크 밖에서는 신호가 약해진다.</li>
+          <li>When2Tool로 학습한 probe를 실제 QA에 그대로 옮기면 신호가 약해진다. <b>다음 장</b>에서 자세히.</li>
           <li>저자들도 인정: probe가 "문제가 어려워 보이는지" 같은 표면 단서와 독립적이라는 건 증명하지 못했다.</li>
           <li>실험은 1.7B–70B 오픈 모델까지. 더 큰 최신 모델에서도 같은지는 모른다.</li>
         </ul>
       </div>
     </div>
   </div>
-  <div class="foot"><span class="src">§5.2, 부록 E.1, 부록 G Table 19, 부록 J</span><span class="pg"></span></div>
+  <div class="foot"><span class="src">§5.2, 부록 E.1, 부록 G, 부록 J</span><span class="pg"></span></div>
   <aside class="notes">
     재롱 발표라도 한계는 정직하게. 특히 부록 J: Qwen3-4B에서 난이도 라벨(쉬움/어려움)로 학습한 probe와 비교하면 어느 쪽도 모든 지점에서 이기지는 않는다. 저자들은 모델별 necessity 라벨이 더 낫다고 보지만, "모델이 자기 능력을 안다"인지 "어려워 보이는 문제를 안다"인지는 증명하지 못했다고 스스로 적었다.
   </aside>
 </section>
 
 <!-- 14 · For us -->
+<section class="slide" data-title="벤치마크 밖으로">
+  <div class="body">
+    <h2>벤치마크 밖으로 옮기면 신호가 약해진다</h2>
+    <div class="xfer">
+      <div class="xfer-chart">
+        <h3>Search-o1 검색 QA 6종, Qwen3-4B-Instruct, probe AUROC</h3>
+        <div class="xfer-legend"><span><i class="k-move"></i>When2Tool probe를 그대로 옮김</span><span><i class="k-new"></i>그 데이터로 새로 학습</span><span><i class="k-band"></i>When2Tool 안, 모델 6개 (0.89–0.96)</span><span><i class="k-own"></i>그중 Qwen3-4B (0.948)</span></div>
+        <svg id="xfer-svg" viewBox="0 0 600 176" role="img" aria-label="Search-o1 QA 6종에서 probe AUROC"></svg>
+      </div>
+      <ul class="plain xfer-text">
+        <li>같은 Qwen3-4B가 벤치마크 안에서는 0.948이었는데, 실제 QA에 그대로 옮기면 <b>0.67–0.80</b>. 가장 낮은 곳은 Bamboogle(0.675, 63문제라 흔들림이 크다)과 MuSiQue(0.695).</li>
+        <li>그대로 옮긴 probe는 <b>AUROC만</b> 보고했다. 이 probe로 호출을 줄이면 정확도가 얼마나 떨어지는지는 논문에 없다.</li>
+        <li>13번의 "검색 56% 감소"는 실험 설정상 각 데이터셋 절반으로 <b>probe를 새로 학습</b>해 낸 결과로 보인다. 새로 학습해도 AUROC는 0.64–0.84이고, MuSiQue에선 오히려 낮았다.</li>
+        <li>범주를 건너는 전이(계산 문제로 학습해 지식 문제에 쓰기)는 실험하지 않았다. 부록 D는 같은 범주 안에서 환경 5개 중 3개로 학습해 5개 전부로 평가했다.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span class="src">§4 Table 3, 부록 D, 부록 G Table 18–20</span><span class="pg"></span></div>
+  <aside class="notes">
+    차트: 검은 점은 When2Tool에서 학습한 probe를 다시 학습하지 않고 Search-o1 QA에 바로 쓴 AUROC, 빈 점은 그 데이터셋 절반으로 새로 학습한 probe(Table 19). Search-o1에서 호출을 줄인 결과(Table 18, 2Wiki 검색 −56%)는 실험 설정(데이터셋별 50/50 분할, 표 캡션의 "probe의 held-out split")으로 보아 빈 점 쪽 probe로 낸 것이다. 논문이 직접 이름 붙이지는 않았다. 저자들의 표현은 "부분적으로 전이된다(partially transfers)". 그래서 (발표자 해석) 질문 분포가 바뀌면 그 분포로 라벨을 다시 만들어야 할 가능성이 크고, 분포가 바뀐 걸 어떻게 알아차릴지도 논문은 다루지 않는다. 틀린 방향도 비대칭: probe가 "도구 필요 없음"을 잘못 말하면 틀린 답, "필요함"을 잘못 말하면 원래의 과잉 호출로 돌아갈 뿐.
+  </aside>
+</section>
+
 <section class="slide" data-title="우리 에이전트엔">
   <div class="body">
     <h2>그래서 우리 에이전트에는? <span class="tag">제안</span></h2>
@@ -1347,6 +1383,29 @@ aside.notes { display: none; }
     try { localStorage.setItem("w2t-chat", JSON.stringify(chat)); } catch (e) {}
     fit();
   }
+  (function drawXfer() {
+    var svg = document.getElementById("xfer-svg"); if (!svg) return;
+    var D = [["NQ",0.731,0.746],["TriviaQA",0.787,0.835],["HotpotQA",0.742,0.798],["2Wiki",0.803,0.803],["Bamboogle",0.675,0.802],["MuSiQue",0.695,0.640]];
+    var x0 = 104, x1 = 590, x = function (v) { return x0 + (v - 0.5) / 0.5 * (x1 - x0); };
+    var y = function (i) { return 24 + i * 40; };
+    var bot = y(D.length - 1) + 22;
+    var h = '<rect x="' + x(0.894) + '" y="0" width="' + (x(0.957) - x(0.894)) + '" height="' + bot + '" rx="4" fill="#1baf7a" fill-opacity=".22"/>' +
+      '<line x1="' + x(0.948) + '" x2="' + x(0.948) + '" y1="0" y2="' + bot + '" stroke="#0e7a55" stroke-width="3"><title>Qwen3-4B, When2Tool 안 0.948</title></line>';
+    [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function (t) {
+      h += '<line x1="' + x(t) + '" x2="' + x(t) + '" y1="0" y2="' + bot + '" stroke="#d5d9e2" stroke-width="1"/>' +
+           '<text x="' + x(t) + '" y="' + (bot + 20) + '" font-size="14" fill="#6b7189" text-anchor="middle">' + t.toFixed(1) + '</text>';
+    });
+    D.forEach(function (d, i) {
+      var a = x(d[1]), b = x(d[2]), yy = y(i);
+      h += '<text x="0" y="' + (yy + 5.5) + '" font-size="16" fill="#1d2135">' + d[0] + '</text>' +
+           '<line x1="' + Math.min(a, b) + '" x2="' + Math.max(a, b) + '" y1="' + yy + '" y2="' + yy + '" stroke="#9aa0b4" stroke-width="2"/>' +
+           '<g><title>' + d[0] + ': 그대로 옮김 ' + d[1].toFixed(3) + '</title><circle cx="' + a + '" cy="' + yy + '" r="6.5" fill="#1d2135"/></g>' +
+           '<g><title>' + d[0] + ': 새로 학습 ' + d[2].toFixed(3) + '</title><circle cx="' + b + '" cy="' + yy + '" r="10" fill="none" stroke="#4a5068" stroke-width="2.5"/></g>';
+    });
+    svg.setAttribute("viewBox", "0 0 600 " + (bot + 28));
+    svg.innerHTML = h;
+  })();
+
   function play(slide) {
     timers.forEach(clearTimeout); timers = [];
     if (slide.id === "probe-slide") probeViz.enter();
