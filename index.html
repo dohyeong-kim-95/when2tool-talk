@@ -272,7 +272,8 @@ body.chat #chat-slot { display: flex; }
   padding: 0 14px; font-size: 13px; color: var(--ink-2); z-index: 20;
 }
 #bar button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-#timer { margin-left: 12px; font-weight: 700; color: var(--ink); }
+#timer { margin: 0 6px 0 12px; font-weight: 700; color: var(--ink); }
+#timer.paused { color: var(--muted); }
 #bar button { font-size: 13px; padding: 3px 10px; border-width: 1.5px; background: rgba(255,255,255,.85); }
 #progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--ink); transition: width .25s; z-index: 20; }
 #notes {
@@ -759,7 +760,8 @@ aside.notes { display: none; }
 <div id="notes" role="region" aria-label="발표자 노트"></div>
 <div id="chat-slot" aria-hidden="true"><div><span>여기에 채팅창을 두세요<br><span id="chat-w"></span><br>C: 끄기 · [ ]: 폭 조절</span></div></div>
 <div id="bar">
-  <span><span id="bar-title"></span> <span id="timer" class="num" title="페이지를 연 뒤 지난 시간"></span></span>
+  <span><span id="bar-title"></span> <span id="timer" class="num"></span>
+    <button id="tm-toggle" title="K: 재생/일시정지">시작</button><button id="tm-end" title="종료 후 다시 시작하면 0부터">종료</button></span>
   <span>
     <button id="btn-chat" title="C 키 · [ ] 키로 폭 조절" aria-pressed="false">채팅창 자리</button>
     <button id="btn-notes" title="N 키">노트</button>
@@ -1281,12 +1283,32 @@ aside.notes { display: none; }
   })();
 
 
-  /* ---------- elapsed time since the page was opened (survives refresh within the tab) ---------- */
-  (function () {
-    var el = document.getElementById("timer"), t0;
-    try { t0 = +sessionStorage.getItem("w2t-t0") || 0; if (!t0) { t0 = Date.now(); sessionStorage.setItem("w2t-t0", t0); } } catch (e) { t0 = Date.now(); }
-    function draw() { var t = Math.floor((Date.now() - t0) / 1000); el.textContent = "소요 " + String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); }
+  /* ---------- talk timer: K play/pause (like YouTube), 종료 button ends (state survives refresh within the tab) ---------- */
+  var timer = (function () {
+    var el = document.getElementById("timer");
+    var bT = document.getElementById("tm-toggle"), bE = document.getElementById("tm-end");
+    var st = { mode: "idle", acc: 0, since: 0 };   // idle | run | pause | end
+    try { var sv = JSON.parse(sessionStorage.getItem("w2t-timer2") || "null"); if (sv) st = sv; } catch (e) {}
+    function save() { try { sessionStorage.setItem("w2t-timer2", JSON.stringify(st)); } catch (e) {} }
+    function secs() { return st.acc + (st.mode === "run" ? (Date.now() - st.since) / 1000 : 0); }
+    function draw() {
+      var t = Math.floor(secs()), txt = String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+      el.textContent = (st.mode === "end" ? "종료 " : st.mode === "pause" ? "일시정지 " : "소요 ") + txt;
+      el.classList.toggle("paused", st.mode === "pause" || st.mode === "idle");
+      bT.textContent = st.mode === "run" ? "일시정지" : st.mode === "pause" ? "재생" : "시작";
+      bE.style.display = st.mode === "run" || st.mode === "pause" ? "" : "none";
+    }
+    function start() {
+      if (st.mode === "run") return;
+      if (st.mode === "idle" || st.mode === "end") st.acc = 0;
+      st.mode = "run"; st.since = Date.now(); save(); draw();
+    }
+    function pause() { if (st.mode !== "run") return; st.acc = secs(); st.mode = "pause"; save(); draw(); }
+    function end() { if (st.mode === "idle" || st.mode === "end") return; st.acc = secs(); st.mode = "end"; save(); draw(); }
+    function toggle() { if (st.mode === "run") pause(); else start(); }
+    bT.onclick = toggle; bE.onclick = end;
     setInterval(draw, 1000); draw();
+    return { toggle: toggle, end: end };
   })();
   /* ---------- deck navigation ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
@@ -1379,6 +1401,7 @@ aside.notes { display: none; }
     else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
     else if (e.key === "f" || e.key === "F") toggleFull();
     else if (e.key === "c" || e.key === "C") setChat({ on: !chat.on });
+    else if (e.key === "k" || e.key === "K") timer.toggle();
     else if (e.key === "[" && chat.on) setChat({ ratio: chat.ratio - 0.03 });
     else if (e.key === "]" && chat.on) setChat({ ratio: chat.ratio + 0.03 });
   });
