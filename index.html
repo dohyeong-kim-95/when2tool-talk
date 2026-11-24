@@ -56,6 +56,7 @@ body {
 }
 .footnote { font-size: 14px; line-height: 1.5; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
 sup.fn { font-family: var(--body); font-size: 0.42em; vertical-align: 1.1em; margin-left: 4px; color: var(--ink-2); }
+p sup.fn { font-size: .62em; vertical-align: .55em; margin-left: 1px; }
 .nw { white-space: nowrap; }
 .pv-controls { display: flex; align-items: center; gap: 12px; margin: -6px 0 12px; }
 .pv-controls .btns button { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
@@ -652,11 +653,12 @@ aside.notes { display: none; }
       </div>
       <div class="col" style="gap:18px">
         <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
-        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">1</sup>에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
         <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA도 그대로.</p></div>
       </div>
     </div>
   </div>
+  <p class="footnote"><sup>1</sup> 2WikiMultihopQA: 위키피디아 문서 두 개를 이어서 찾아야 답이 나오는 질의응답 데이터셋 (예: "영화 X 감독은 어디서 태어났나?" → 감독을 찾고, 다시 출생지를 찾는다).</p>
   <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, 부록 H Table 22</span><span class="pg"></span></div>
   <aside class="notes">
     <b>숫자 정리</b> 38%와 1.7%p는 τ=0.5에서 모델 6개 평균(기준: 지시 없는 기본 설정). 모델별로는 편차가 커서 Llama-3.1-8B는 −9.8%p. 이전 버전(v1) 초록은 48%로 적혀 있었는데 v4에서 38%로 바뀌었다. 예전 자료를 본 사람이 있으면 짚어 줄 것. SFT 결과가 재밌다: 900개로 학습하면 정확도는 +2–3%p 오르지만(부록 H.1) 호출 결정 경계는 못 배운다. 6,000개로 늘려도 +0.8%p에 호출은 오히려 늘었다(부록 H.2).
