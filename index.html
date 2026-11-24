@@ -36,8 +36,8 @@ body {
   overflow: hidden;
   word-break: keep-all;
 }
-#viewport { position: fixed; inset: 0; display: grid; place-items: center; }
-#stage { width: 1280px; height: 720px; position: relative; transform-origin: center center; }
+#viewport { position: fixed; inset: 0; }
+#stage { width: 1280px; height: 720px; position: absolute; left: 50%; top: 50%; transform-origin: center center; }
 
 .slide {
   position: absolute; inset: 0;
@@ -234,11 +234,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card p { font-size: 18px; }
 
 /* chrome */
+#chat-slot {
+  position: fixed; top: 0; right: 0; bottom: 0; display: none; z-index: 10;
+  border-left: 2px dashed #9aa1b3; background: rgba(255,255,255,.35);
+  align-items: center; justify-content: center; text-align: center;
+  font-size: 14px; color: var(--ink-2); line-height: 1.6;
+}
+body.chat #chat-slot { display: flex; }
 #bar {
   position: fixed; left: 0; right: 0; bottom: 0; height: 40px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 0 14px; font-size: 13px; color: var(--ink-2); z-index: 20;
 }
+#bar button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 #bar button { font-size: 13px; padding: 3px 10px; border-width: 1.5px; background: rgba(255,255,255,.85); }
 #progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--ink); transition: width .25s; z-index: 20; }
 #notes {
@@ -686,9 +694,11 @@ aside.notes { display: none; }
 </div></div>
 
 <div id="notes" role="region" aria-label="발표자 노트"></div>
+<div id="chat-slot" aria-hidden="true"><div>여기에 채팅창을 두세요<br><span id="chat-w"></span><br>C: 끄기 · [ ]: 폭 조절</div></div>
 <div id="bar">
   <span id="bar-title"></span>
   <span>
+    <button id="btn-chat" title="C 키 · [ ] 키로 폭 조절" aria-pressed="false">채팅창 자리</button>
     <button id="btn-notes" title="N 키">노트</button>
     <button id="btn-full" title="F 키">전체화면</button>
     <button id="btn-prev" aria-label="이전 슬라이드">이전</button>
@@ -1159,9 +1169,31 @@ aside.notes { display: none; }
     Array.prototype.forEach.call(s.querySelectorAll(".pg"), function (p) { p.textContent = app ? "부록 " + app : s.dataset.key + " / " + mains.length; });
   });
   function byKey(k) { for (var i = 0; i < slides.length; i++) if (slides[i].dataset.key === k) return slides[i]; return null; }
+  /* chat-window mode: shrink the deck to the left so a video-call chat panel fits on the right */
+  var chat = { on: false, ratio: 0.28 };
+  try { var saved = JSON.parse(localStorage.getItem("w2t-chat") || "null"); if (saved) chat = saved; } catch (e) {}
+  if (/[?&]chat=1/.test(location.search)) chat.on = true;
   function fit() {
-    var s = Math.min(window.innerWidth / 1320, (window.innerHeight - 44) / 760);
-    document.getElementById("stage").style.transform = "scale(" + s + ") translateY(-10px)";
+    var W = window.innerWidth, H = window.innerHeight;
+    var reserve = chat.on ? Math.max(300, Math.round(W * chat.ratio)) : 0;
+    var avail = W - reserve;
+    var s = Math.min(avail / 1320, (H - 44) / 760);
+    document.body.classList.toggle("chat", chat.on);
+    document.getElementById("viewport").style.right = reserve + "px";
+    document.getElementById("bar").style.right = reserve + "px";
+    document.getElementById("progress").style.maxWidth = avail + "px";
+    var slot = document.getElementById("chat-slot"); slot.style.width = reserve + "px";
+    document.getElementById("chat-w").textContent = "화면 폭의 " + Math.round(reserve / W * 100) + "% (" + reserve + "px)";
+    notes.style.left = (avail / 2) + "px";
+    notes.style.width = "min(900px, " + (avail - 24) + "px)";
+    var b = document.getElementById("btn-chat"); b.setAttribute("aria-pressed", chat.on ? "true" : "false");
+    document.getElementById("stage").style.transform = "translate(-50%, -50%) scale(" + s + ") translateY(-10px)";
+  }
+  function setChat(patch) {
+    for (var k in patch) chat[k] = patch[k];
+    chat.ratio = Math.max(0.18, Math.min(0.45, Math.round(chat.ratio * 100) / 100));
+    try { localStorage.setItem("w2t-chat", JSON.stringify(chat)); } catch (e) {}
+    fit();
   }
   function play(slide) {
     timers.forEach(clearTimeout); timers = [];
@@ -1215,6 +1247,9 @@ aside.notes { display: none; }
     else if (e.key === "End") go(mains.length - 1);
     else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
     else if (e.key === "f" || e.key === "F") toggleFull();
+    else if (e.key === "c" || e.key === "C") setChat({ on: !chat.on });
+    else if (e.key === "[" && chat.on) setChat({ ratio: chat.ratio - 0.03 });
+    else if (e.key === "]" && chat.on) setChat({ ratio: chat.ratio + 0.03 });
   });
   function toggleFull() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
@@ -1224,6 +1259,7 @@ aside.notes { display: none; }
   document.getElementById("btn-prev").onclick = function () { step(-1); };
   document.getElementById("btn-notes").onclick = function () { notes.classList.toggle("on"); };
   document.getElementById("btn-full").onclick = toggleFull;
+  document.getElementById("btn-chat").onclick = function () { setChat({ on: !chat.on }); };
   var tx = null;
   document.addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; }, { passive: true });
   document.addEventListener("touchend", function (e) {
