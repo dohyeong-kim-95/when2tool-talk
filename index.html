@@ -236,9 +236,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 /* chrome */
 #chat-slot {
   position: fixed; top: 0; right: 0; bottom: 0; display: none; z-index: 10;
-  border-left: 2px dashed #9aa1b3; background: rgba(255,255,255,.35);
-  align-items: center; justify-content: center; text-align: center;
-  font-size: 14px; color: var(--ink-2); line-height: 1.6;
+  padding: 16px 16px 16px 0;
+}
+#chat-slot > div {
+  flex: 1; border-radius: 16px; background: rgba(255,255,255,.55);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: 14px; color: var(--muted); line-height: 1.6;
 }
 body.chat #chat-slot { display: flex; }
 #bar {
@@ -694,7 +697,7 @@ aside.notes { display: none; }
 </div></div>
 
 <div id="notes" role="region" aria-label="발표자 노트"></div>
-<div id="chat-slot" aria-hidden="true"><div>여기에 채팅창을 두세요<br><span id="chat-w"></span><br>C: 끄기 · [ ]: 폭 조절</div></div>
+<div id="chat-slot" aria-hidden="true"><div><span>여기에 채팅창을 두세요<br><span id="chat-w"></span><br>C: 끄기 · [ ]: 폭 조절</span></div></div>
 <div id="bar">
   <span id="bar-title"></span>
   <span>
