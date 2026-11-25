@@ -56,7 +56,7 @@ body {
 }
 .footnote { font-size: 14px; line-height: 1.5; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
 sup.fn { font-family: var(--body); font-size: 0.42em; vertical-align: 1.1em; margin-left: 4px; color: var(--ink-2); }
-p sup.fn { font-size: .62em; vertical-align: .55em; margin-left: 1px; }
+p sup.fn, li sup.fn, span sup.fn, h3 sup.fn { font-size: .62em; vertical-align: .55em; margin-left: 1px; }
 .nw { white-space: nowrap; }
 .pv-controls { display: flex; align-items: center; gap: 12px; margin: -6px 0 12px; }
 .pv-controls .btns button { font-size: 15px; padding: 4px 12px; border-width: 1.5px; }
@@ -211,8 +211,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .xfer-legend .k-new { border: 2.5px solid var(--ink-2); background: #fff; width: 12px; height: 12px; }
 .xfer-legend .k-own { border-radius: 0; width: 3px; height: 14px; background: #0e7a55; }
 .xfer-legend .k-band { border-radius: 3px; width: 16px; background: rgba(27,175,122,.22); }
-.xfer-text li { font-size: 19px; line-height: 1.5; }
-ul.plain.xfer-text { gap: 14px; }
+.xfer-text li { font-size: 18px; line-height: 1.45; }
+ul.plain.xfer-text { gap: 10px; }
 .hbar { display: grid; grid-template-columns: 180px 1fr 90px; gap: 14px; align-items: center; font-size: 18px; }
 .hbar .track { position: relative; height: 28px; }
 .hbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ink); transition: width .9s cubic-bezier(.2,.7,.2,1); }
@@ -513,12 +513,12 @@ aside.notes { display: none; }
         <div class="pv-prefill" id="pv-prefill"></div>
       </div>
     </div>
-    <p class="muted" style="margin-top:8px; font-size:14px">그림 값은 설명용. 실제 h는 94,720차원(Qwen3-4B)이고 여기선 8 레이어 × 유닛 10개만, 토큰도 단어 단위로 단순화해서 그렸다.</p>
-    <p class="pv-facts">학습 예시 <b>900개</b>, CPU에서 몇 초 (90개만 써도 AUROC 0.81 이상) · probe 입력 <b>94,720차원</b> (Qwen3-4B) · 추가 지연 <b>0.7ms 이하</b>, 추가 forward pass 없음</p>
+    <p class="pv-facts">학습 예시 <b>900개</b>, CPU에서 몇 초 (90개만 써도 AUROC 0.81 이상) · probe 입력 <b>94,720차원</b><sup class="fn">1</sup> (Qwen3-4B) · 추가 지연 <b>0.7ms 이하</b>, 추가 forward pass 없음<sup class="fn">2</sup></p>
     <div class="gloss" style="margin-top:10px; padding:10px 16px">
       <p><b>AUROC</b>: 도구가 필요한 문제와 아닌 문제를 probe가 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
       <button class="jump" data-goto="A1">자세히 (부록 A1)</button>
     </div>
+    <p class="muted" style="margin-top:8px; font-size:13.5px">그림은 8 레이어 × 유닛 10개, 단어 단위 토큰으로 단순화한 설명용. <sup>1</sup> 실제 h = 레이어 37개 × hidden 크기 2,560. <sup>2</sup> 답을 쓰려면 어차피 하는 프롬프트 통과(KV 캐시 생성)에서 나온 값을 재활용한다.</p>
   </div>
   <div class="foot"><span class="src">§4 Setup, §5.1 Step 1, Table 15, Table 17</span><span class="pg"></span></div>
   <aside class="notes">
@@ -550,10 +550,11 @@ aside.notes { display: none; }
     <div class="tr-fit" id="tr-fit">
       <span class="tr-fit-l">학습된 w</span>
       <div class="pv-vec tr-vec" id="tr-w" aria-hidden="true"></div>
-      <span class="tr-fit-r">L2 정규화 로지스틱 회귀 · 학습 900개 · CPU에서 몇 초</span>
+      <span class="tr-fit-r">L2 정규화<sup class="fn">1</sup> 로지스틱 회귀 · 학습 900개 · CPU에서 몇 초</span>
     </div>
     <p class="small" style="margin-top:8px">모델을 바꿔 보면 같은 문제라도 라벨이 달라진다. 그래서 라벨도 probe도 <b>모델마다 따로</b> 만든다. 평가는 학습에 쓰지 않은 2,250문제로 했다.</p>
   </div>
+  <p class="footnote"><sup>1</sup> L2 정규화: 가중치가 커질수록 벌점을 줘서 과적합을 막는다. 특징은 수만 개 이상(Qwen3-4B는 94,720개)인데 학습 예시는 900개뿐이라 강하게 건다 (논문 λ=10,000).</p>
   <div class="foot"><span class="src">§4 Setup, 부록 E.4–E.5 · 모델 답과 h 값은 설명용, 정답은 논문 부록 A 예시</span><span class="pg"></span></div>
   <aside class="notes">
     <b>probe 학습</b> 정답지를 사람이 만들지 않는다. 모델에게 도구 없이 풀려 보고 맞으면 0(도구 불필요), 틀리면 1(도구 필요). 그래서 라벨이 모델마다 다르다: 모델 버튼을 바꿔 보여주면 중간 난이도 문제의 라벨이 뒤집힌다. 입력은 같은 문제의 마지막 토큰 hidden state(모든 레이어 이어 붙임, 표준화). sklearn 로지스틱 회귀, L2 λ=10,000. 학습 900개(단일 홉 15개 환경 × 3 난이도 × 20개), 평가는 따로 둔 2,250개. 90개만 써도 AUROC 0.81 이상. 추론 때는 p = σ(z/T), T=2.
@@ -646,19 +647,19 @@ aside.notes { display: none; }
   <div class="body">
     <h2>성적표: 평균 호출 38% 감소, 정확도는 1.7%p만 내줬다</h2>
     <div class="row" style="flex:1; gap:48px">
-      <div class="col" style="flex:1.1">
+      <div class="col" style="flex:1.1; min-height:0">
         <h3>호출 하나 줄일 때마다 잃는 정확도 (%p, 6개 모델 평균)</h3>
         <div class="legend" id="lg-cost"></div>
         <div class="chart-wrap" id="chart-cost"></div>
       </div>
-      <div class="col" style="gap:18px">
+      <div class="col" style="gap:12px">
         <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
-        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">1</sup>에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 3–4홉짜리 MuSiQue에서는 기존 방법이 더 많이 줄였다.</p></div>
-        <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA도 그대로.</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1<sup class="fn">1</sup>, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">2</sup>에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 여러 번 이어 찾는 MuSiQue<sup class="fn">3</sup>에서는 기존 방법이 더 많이 줄였다.</p></div>
+        <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT<sup class="fn">4</sup>해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA<sup class="fn">4</sup>도 그대로.</p></div>
       </div>
     </div>
   </div>
-  <p class="footnote"><sup>1</sup> 2WikiMultihopQA: 위키피디아 문서 두 개를 이어서 찾아야 답이 나오는 질의응답 데이터셋 (예: "영화 X 감독은 어디서 태어났나?" → 감독을 찾고, 다시 출생지를 찾는다).</p>
+  <p class="footnote"><sup>1</sup> Search-o1: 추론 중 웹 검색을 부르는 에이전트(EMNLP 2025). 그 평가에 쓰인 기존 QA 6종으로 실험. &nbsp;<sup>2</sup> 2WikiMultihopQA: 위키 문서 둘을 이어 찾는 질문 (예: 영화 X 감독의 출생지).<br><sup>3</sup> MuSiQue: 최대 4번 이어 찾아야 하는 질문 모음 (논문 표현은 3–4홉). &nbsp;<sup>4</sup> SFT: 정답 과정(직답 또는 도구 호출)을 따라 하도록 가중치를 미세조정. LoRA: 작은 행렬(rank 16)만 덧붙여 학습하는 가벼운 버전.</p>
   <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, 부록 H Table 22</span><span class="pg"></span></div>
   <aside class="notes">
     <b>숫자 정리</b> 38%와 1.7%p는 τ=0.5에서 모델 6개 평균(기준: 지시 없는 기본 설정). 모델별로는 편차가 커서 Llama-3.1-8B는 −9.8%p. 이전 버전(v1) 초록은 48%로 적혀 있었는데 v4에서 38%로 바뀌었다. 예전 자료를 본 사람이 있으면 짚어 줄 것. SFT 결과가 재밌다: 900개로 학습하면 정확도는 +2–3%p 오르지만(부록 H.1) 호출 결정 경계는 못 배운다. 6,000개로 늘려도 +0.8%p에 호출은 오히려 늘었다(부록 H.2).
@@ -700,7 +701,7 @@ aside.notes { display: none; }
     <h2>벤치마크 밖으로 옮기면 신호가 약해진다</h2>
     <div class="xfer">
       <div class="xfer-chart">
-        <h3>Search-o1 검색 QA 6종, Qwen3-4B-Instruct, probe AUROC</h3>
+        <h3>Search-o1 검색 QA 6종<sup class="fn">1</sup>, Qwen3-4B-Instruct, probe AUROC</h3>
         <div class="xfer-legend"><span><i class="k-move"></i>When2Tool probe를 그대로 옮김</span><span><i class="k-new"></i>그 데이터로 새로 학습</span><span><i class="k-band"></i>When2Tool 안, 모델 6개 (0.89–0.96)</span><span><i class="k-own"></i>그중 Qwen3-4B (0.948)</span></div>
         <svg id="xfer-svg" viewBox="0 0 600 176" role="img" aria-label="Search-o1 QA 6종에서 probe AUROC"></svg>
       </div>
@@ -712,6 +713,7 @@ aside.notes { display: none; }
       </ul>
     </div>
   </div>
+  <p class="footnote"><sup>1</sup> 한 번 찾으면 되는 사실 질문: NQ, TriviaQA · 두 번 이어 찾는 질문: HotpotQA, 2Wiki · 여러 번 이어 찾는 복잡한 질문: MuSiQue, Bamboogle (부록 G 분류)</p>
   <div class="foot"><span class="src">§4 Table 3, 부록 D, 부록 G Table 18–20</span><span class="pg"></span></div>
   <aside class="notes">
     차트: 검은 점은 When2Tool에서 학습한 probe를 다시 학습하지 않고 Search-o1 QA에 바로 쓴 AUROC, 빈 점은 그 데이터셋 절반으로 새로 학습한 probe(Table 19). Search-o1에서 호출을 줄인 결과(Table 18, 2Wiki 검색 −56%)는 실험 설정(데이터셋별 50/50 분할, 표 캡션의 "probe의 held-out split")으로 보아 빈 점 쪽 probe로 낸 것이다. 논문이 직접 이름 붙이지는 않았다. 저자들의 표현은 "부분적으로 전이된다(partially transfers)". 그래서 (발표자 해석) 질문 분포가 바뀌면 그 분포로 라벨을 다시 만들어야 할 가능성이 크고, 분포가 바뀐 걸 어떻게 알아차릴지도 논문은 다루지 않는다. 틀린 방향도 비대칭: probe가 "도구 필요 없음"을 잘못 말하면 틀린 답, "필요함"을 잘못 말하면 원래의 과잉 호출로 돌아갈 뿐.
@@ -733,11 +735,12 @@ aside.notes { display: none; }
       </div>
       <div class="col card">
         <h3>3. API 모델이라면</h3>
-        <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 self-ask나 첫 토큰 확률을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
+        <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 self-ask<sup class="fn">1</sup>나 첫 토큰 확률<sup class="fn">1</sup>을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
       </div>
     </div>
     <p class="lead" style="margin-top:24px">그리고 "아껴 써" 한 줄로 해결하려 하지 말 것. Qwen에서는 어려운 문제부터 망가졌다.</p>
   </div>
+  <p class="footnote"><sup>1</sup> self-ask: "도구 없이 풀 수 있나?"에 모델이 "No"라고 답할 확률을 점수로 쓴다. 첫 토큰 확률: 답의 첫 토큰으로 도구 호출 토큰을 낼 확률. 둘 다 출력 확률만 있으면 되지만, 쓰는 API가 확률(logprobs)을 주는지는 확인해야 한다 (발표자 의견).</p>
   <div class="foot"><span class="src">제안은 발표자 의견. 근거: §3.2, 부록 I (Qwen3-4B, 비슷한 호출 수에서 probe 90.4% vs self-ask 87.1%)</span><span class="pg"></span></div>
   <aside class="notes">
     <b>토론 질문</b> "여러분 에이전트에서 본 가장 어이없는 도구 호출은?" 각자 사례를 모으면 재밌다. API 모델의 prefill 지원 여부와 logprob 제공 여부는 제공사와 모델마다 다르니 쓰기 전에 확인.
