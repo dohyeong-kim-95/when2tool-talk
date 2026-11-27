@@ -197,6 +197,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .q.done { border-color: var(--ink); }
 .lvl { display: inline-block; font-weight: 700; padding: 1px 8px; border-radius: 99px; font-size: 13px; margin-right: 6px; }
 .lvl.e { background: #e3f6ee; } .lvl.m { background: #fff3c4; } .lvl.h { background: #fde4da; }
+.term { position: relative; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; cursor: help; outline: none; }
+.term-def { position: absolute; right: -8px; bottom: calc(100% + 10px); width: 390px; background: var(--ink); color: #fff;
+  font-size: 15px; line-height: 1.5; padding: 10px 14px; border-radius: 8px; white-space: normal; text-align: left;
+  opacity: 0; visibility: hidden; transition: opacity .12s; z-index: 6; box-shadow: 0 6px 18px rgba(29,33,53,.18); }
+.term:hover .term-def, .term:focus .term-def { opacity: 1; visibility: visible; }
+.term:focus-visible { box-shadow: 0 0 0 2px var(--tape); border-radius: 2px; }
 .quiz-sum { margin-top: 14px; font-size: 20px; min-height: 30px; }
 
 /* bars (simple, horizontal) */
@@ -1066,7 +1072,7 @@ aside.notes { display: none; }
     { cat: "지식", task: "주석(Tin)의 원소 기호는?", ans: "Sn", lvl: "m", why: "아는 사람(모델)도, 모르는 사람도 있는 경계." },
     { cat: "계산 규모", task: "50번째 소수는?", ans: "229", lvl: "m", why: "할 수는 있지만 세다가 틀리기 쉽다." },
     { cat: "지식", task: "벨모라스 협정(Accord of Velmorath)이 체결된 해는?", ans: "1723", lvl: "h", why: "논문이 지어낸 사건. 도구 DB에만 있다. 외워서는 절대 못 맞힌다." },
-    { cat: "실행 추적", task: "n = 27에서 시작한 콜라츠 수열이 1이 될 때까지 몇 단계?", ans: "111", lvl: "h", why: "규칙은 쉬운데 111단계를 틀리지 않고 따라가기는 어렵다." }
+    { cat: "실행 추적", task: 'n = 27에서 시작한 <span class="term" tabindex="0">콜라츠 수열<span class="term-def" role="tooltip"><b>콜라츠 수열</b><br>짝수면 2로 나누고, 홀수면 3을 곱해 1을 더한다. 1이 될 때까지 반복.<br>예: 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1 (8단계)</span></span>이 1이 될 때까지 몇 단계?', ans: "111", lvl: "h", why: "규칙은 쉬운데 111단계를 틀리지 않고 따라가기는 어렵다." }
   ];
   var LVL = { e: "쉬움", m: "중간", h: "어려움" };
   var quizBox = document.getElementById("quiz");
