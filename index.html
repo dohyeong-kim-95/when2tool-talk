@@ -203,6 +203,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .term-def { position: absolute; right: -8px; bottom: calc(100% + 10px); width: 390px; background: var(--ink); color: #fff;
   font-size: 15px; line-height: 1.5; padding: 10px 14px; border-radius: 8px; white-space: normal; text-align: left;
   opacity: 0; visibility: hidden; transition: opacity .12s; z-index: 6; box-shadow: 0 6px 18px rgba(29,33,53,.18); }
+.term-left .term-def { right: auto; left: -8px; }
+.term-def code { font-size: 13px; background: rgba(255,255,255,.12); padding: 0 4px; border-radius: 3px; color: #fff; }
 .term:hover .term-def, .term:focus .term-def { opacity: 1; visibility: visible; }
 .term:focus-visible { box-shadow: 0 0 0 2px var(--tape); border-radius: 2px; }
 .quiz-sum { margin-top: 14px; font-size: 20px; min-height: 30px; }
@@ -361,7 +363,7 @@ aside.notes { display: none; }
           <div class="msg toolres step">→ 15</div>
           <div class="msg bot step"><span class="who">에이전트</span>15일입니다.</div>
         </div>
-        <p class="small muted" style="margin-top:auto">위 대화는 연출. 문제는 논문 DateTimeEnv의 쉬움 예시.</p>
+        <p class="small muted" style="margin-top:auto">위 대화는 연출. 문제는 논문 <span class="term term-left" tabindex="0">DateTimeEnv<span class="term-def" role="tooltip"><b>DateTimeEnv</b> (부록 A.5.2)<br>벤치마크 환경 18개 중 하나인 날짜 계산 환경. 환경 = 문제 + 그 문제용 도구 + 채점 기준.<br>도구: <code>date_add</code>, <code>date_diff</code>, <code>day_of_week</code><br>쉬움: 같은 달 안에서 세기 (1월 3일→18일)<br>중간: 달·해를 넘김, 윤년 (2024년 2월 25일→3월 10일)<br>어려움: 임의 날짜의 요일 (2027년 8월 15일)<br>범주는 "실행 추적": 규칙은 알지만 따라가다 틀리기 쉬운 문제.</span></span>의 쉬움 예시.</p>
       </div>
       <div class="col" style="justify-content:center; gap:26px">
         <h3>아무 지시 없는 기본 설정, 쉬운 문제 750개에서 부른 도구 횟수</h3>
