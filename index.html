@@ -125,6 +125,8 @@ sup.n { font-size: .7em; vertical-align: .5em; line-height: 0; margin-left: 1px;
 .tr-fit.on { opacity: 1; }
 .tr-fit-l { font-size: 15px; font-weight: 700; }
 .tr-fit-r { font-size: 14px; color: var(--ink-2); }
+.foot .ref { cursor: pointer; border-radius: 3px; text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .12s; }
+.foot .ref:hover, .foot .ref:focus-visible { text-decoration-color: currentColor; color: var(--ink); outline: none; }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
 
 h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
@@ -369,7 +371,7 @@ aside.notes { display: none; }
       </div>
     </div>
   </div>
-  <div class="foot"><span class="src">§3.2 Finding 1</span><span class="pg"></span></div>
+  <div class="foot"><span class="src">§3.2 Finding 1, 부록 A.5.2</span><span class="pg"></span></div>
   <aside class="notes">
     <b>Finding 1</b> 모델의 기본값은 "도구가 있다, 그러므로 쓴다". 호출마다 API 비용과 지연이 붙고, 에이전트는 세션마다 결정을 수십 번 하니 누적된다. 크다고 덜 부르는 것도 아니다: 70B가 쉬운 문제에서 1.7B보다 더 많이 불렀다.
   </aside>
@@ -1493,6 +1495,48 @@ aside.notes { display: none; }
   });
   window.addEventListener("resize", fit);
   window.addEventListener("hashchange", function () { var t = byKey(decodeURIComponent(location.hash.slice(1))); if (t && t !== cur) show(t, false); });
+  /* ---------- 출처: 더블클릭하면 arXiv HTML 원문의 해당 위치를 연다 ---------- */
+  (function linkSources() {
+    var BASE = "https://arxiv.org/html/2605.09252v4";
+    var APP = "ABCDEFGHIJ";
+    var TABLE = { 1: "S2.T1", 2: "S3.T2", 3: "S4.T3", 4: "S5.T4", 5: "A1.T5", 6: "A1.T6", 7: "A2.T7", 8: "A2.T8",
+      9: "A3.T9", 10: "A3.T10", 11: "A3.T11", 12: "A5.T12", 13: "A5.T13", 14: "A5.T14", 15: "A5.T15", 16: "A5.T16",
+      17: "A6.T17", 18: "A7.T18", 19: "A7.T19", 20: "A7.T20", 21: "A8.T21", 22: "A8.T22", 23: "A9.T23", 24: "A10.T24" };
+    var RE = /초록|§\d+(?:\.\d+)?(?: Finding \d+(?:·\d+)?| Setup| 마지막 문단)?|부록 [A-J](?:\.\d+(?:\.\d+)?)?(?:–[A-J]?\.?\d+(?:\.\d+)?)?|Table \d+(?:–\d+)?/g;
+    function anchor(t) {
+      var m;
+      if (t === "초록") return "abstract1";
+      if ((m = /^§(\d+)(?:\.(\d+))?/.exec(t))) return "S" + m[1] + (m[2] ? ".SS" + m[2] : "");
+      if ((m = /^부록 ([A-J])(?:\.(\d+)(?:\.(\d+))?)?/.exec(t))) {
+        var a = "A" + (APP.indexOf(m[1]) + 1);
+        return a + (m[2] ? ".SS" + m[2] : "") + (m[3] ? ".SSS" + m[3] : "");
+      }
+      if ((m = /^Table (\d+)/.exec(t))) return TABLE[+m[1]] || null;
+      return null;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".foot .src"), function (src) {
+      var text = src.textContent, out = "", last = 0, m;
+      var esc = function (x) { return x.replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+      RE.lastIndex = 0;
+      while ((m = RE.exec(text))) {
+        var id = anchor(m[0]);
+        out += esc(text.slice(last, m.index));
+        out += id ? '<span class="ref" tabindex="0" data-a="' + id + '" title="더블클릭: 원문(arXiv)에서 보기">' + esc(m[0]) + "</span>" : esc(m[0]);
+        last = m.index + m[0].length;
+      }
+      src.innerHTML = out + esc(text.slice(last));
+    });
+    function open(el) { window.open(BASE + "#" + el.dataset.a, "_blank", "noopener"); }
+    document.addEventListener("dblclick", function (e) {
+      var r = e.target.closest(".foot .ref");
+      if (!r) { var s = e.target.closest(".foot .src"); r = s && s.querySelector(".ref"); }
+      if (r) { e.preventDefault(); window.getSelection && window.getSelection().removeAllRanges(); open(r); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target.classList && e.target.classList.contains("ref")) open(e.target);
+    });
+  })();
+
   keepWords(document.getElementById("stage"));
   fit();
   show(byKey(decodeURIComponent(location.hash.slice(1))) || mains[0], false);
