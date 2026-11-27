@@ -235,6 +235,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   opacity: 0; visibility: hidden; transition: opacity .12s; z-index: 6; box-shadow: 0 6px 18px rgba(29,33,53,.18); }
 .term-left .term-def { right: auto; left: -8px; }
 .term-def.wide { width: 540px; }
+.term-below-r .term-def { right: -8px; left: auto; bottom: auto; top: calc(100% + 12px); }
+h3 .term .term-def { font-size: 15px; }
 .term-sep { display: block; border-top: 1px solid rgba(255,255,255,.28); margin: 9px 0; }
 .term-below .term-def { right: auto; left: -8px; bottom: auto; top: calc(100% + 12px); width: 560px; }
 .term-def { font-family: var(--body); font-weight: 400; letter-spacing: 0; }
@@ -784,7 +786,7 @@ aside.notes { display: none; }
         <p class="small muted mono" style="font-size:14px">github.com/Trustworthy-ML-Lab/when2tool</p>
       </div>
       <div class="col card">
-        <h3>3. API 모델이라면</h3>
+        <h3>3. <span class="term term-below-r" tabindex="0">API 모델이라면<span class="term-def wide" role="tooltip"><b>API 모델이라면</b> (부록 I)<br>hidden state를 꺼낼 수 없으니 다른 신호로 대신한다. 첫 문장 prefill은 그대로.<br>· self-ask: "도구 없이 풀 수 있어?"에 "No"라고 답할 확률<br>· 첫 토큰 확률: 답의 첫 토큰으로 도구 호출을 낼 확률<br>· 말로 한 자신감: 0–100점 자기 평가 (점수가 뭉쳐서 조절이 거칠었다)<span class="term-sep"></span>비슷한 호출 수(문제당 약 0.76번)에서 정확도<br>probe 90.4% · self-ask 87.1% · 첫 토큰 확률 85.6%<span class="term-sep"></span>주의: Qwen3-4B로 흉내 낸 실험이고 실제 API 모델 결과는 아니다. 확률값(logprobs)과 prefill 지원 여부는 API마다 다르다.</span></span></h3>
         <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 self-ask<sup class="fn">1</sup>나 첫 토큰 확률<sup class="fn">1</sup>을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
       </div>
     </div>
