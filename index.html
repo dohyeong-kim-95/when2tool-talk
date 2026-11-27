@@ -204,6 +204,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   font-size: 15px; line-height: 1.5; padding: 10px 14px; border-radius: 8px; white-space: normal; text-align: left;
   opacity: 0; visibility: hidden; transition: opacity .12s; z-index: 6; box-shadow: 0 6px 18px rgba(29,33,53,.18); }
 .term-left .term-def { right: auto; left: -8px; }
+.term-below .term-def { right: auto; left: -8px; bottom: auto; top: calc(100% + 12px); width: 560px; }
+.term-def { font-family: var(--body); font-weight: 400; letter-spacing: 0; }
+.term-def b { font-weight: 700; }
+h2 .term { text-underline-offset: 8px; text-decoration-thickness: 2px; }
 .term-def code { font-size: 13px; background: rgba(255,255,255,.12); padding: 0 4px; border-radius: 3px; color: #fff; }
 .term:hover .term-def, .term:focus .term-def { opacity: 1; visibility: visible; }
 .term:focus-visible { box-shadow: 0 0 0 2px var(--tape); border-radius: 2px; }
@@ -354,7 +358,7 @@ aside.notes { display: none; }
 <!-- 3 · Overcall -->
 <section class="slide" data-title="과잉 호출">
   <div class="body">
-    <h2>도구가 있으니까 쓴다. 쉬운 문제 750개에 호출 1,482번</h2>
+    <h2>도구가 있으니까 쓴다. <span class="term term-below" tabindex="0">쉬운 문제<span class="term-def" role="tooltip"><b>설계</b> (§2.2, 부록 A)<br>저자들이 환경마다 난이도별 문제 생성 규칙을 정했다.<br>예: 계산은 2–40 사이 수, 날짜는 같은 달 안. 문제마다 사람이 라벨을 단 것은 아니다.<br><b>검증</b> (부록 A.7, Table 6)<br>6개 모델에게 도구 없이 직접 풀게 해서 확인했다.<br>평균 정답률 쉬움 69.4%, 중간 54.4%, 어려움 15.5%.</span></span> 750개에 호출 1,482번</h2>
     <div class="row" style="flex:1">
       <div class="col" style="flex:0.9">
         <div class="chat" id="overcall-chat">
