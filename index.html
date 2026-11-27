@@ -314,6 +314,7 @@ ul.plain.xfer-text { gap: 10px; }
 .card { border: 2px solid var(--line); border-radius: 12px; padding: 16px 18px; }
 .card h3 { margin-bottom: 6px; }
 .card p { font-size: 18px; }
+.tight-cards .card { padding: 12px 18px; }
 
 /* chrome */
 #chat-slot {
@@ -698,15 +699,15 @@ aside.notes { display: none; }
         <div class="legend" id="lg-cost"></div>
         <div class="chart-wrap" id="chart-cost"></div>
       </div>
-      <div class="col" style="gap:12px">
+      <div class="col tight-cards" style="gap:8px">
         <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
-        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1<sup class="fn">1</sup>, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">2</sup>에서 검색 <b>56%</b> 감소, 정확도 36.4% → 39.2% (그 데이터로 probe를 새로 학습). 단, 여러 번 이어 찾는 MuSiQue<sup class="fn">3</sup>에서는 기존 방법이 더 많이 줄였다.</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1<sup class="fn">1</sup>, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">2</sup> 환경에서 probe를 학습한 경우<br>도구 호출 <b>56%</b> 감소, 정확도 <b>2.8%p</b> 증가 (36.4% → 39.2%)<br>MuSiQue<sup class="fn">3</sup> 환경에서는 기존 방법("도구 사용은 필수" 프롬프트)이 더 많이 줄였다 (−56% vs −48%)</p></div>
         <div class="card"><h3>fine-tuning으로 가르치면?</h3><p>Qwen3-4B를 6,000개로 SFT<sup class="fn">4</sup>해도 호출이 안 줄었다 (문제당 0.94 → 0.998번). LoRA<sup class="fn">4</sup>도 그대로.</p></div>
       </div>
     </div>
   </div>
   <p class="footnote"><sup>1</sup> Search-o1: 추론 중 웹 검색을 부르는 에이전트(EMNLP 2025). 그 평가에 쓰인 기존 QA 6종으로 실험. &nbsp;<sup>2</sup> 2WikiMultihopQA: 위키 문서 둘을 이어 찾는 질문 (예: 영화 X 감독의 출생지).<br><sup>3</sup> MuSiQue: 최대 4번 이어 찾아야 하는 질문 모음 (논문 표현은 3–4홉). &nbsp;<sup>4</sup> SFT: 정답 과정(직답 또는 도구 호출)을 따라 하도록 가중치를 미세조정. LoRA: 작은 행렬(rank 16)만 덧붙여 학습하는 가벼운 버전.</p>
-  <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, 부록 H Table 22</span><span class="pg"></span></div>
+  <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, Table 20, 부록 H Table 22</span><span class="pg"></span></div>
   <aside class="notes">
     주황 막대("아껴 써" + 먼저 생각하기)는 Table 4의 6개 모델 평균이라 Reason-then-Act에서 무너진 Llama 두 개가 섞여 있다. Qwen만 보면 Reason-then-Act도 꽤 괜찮다. 그래도 같은 호출 수에서 맞춰 보면 Probe&amp;Prefill이 0.8–2.1%p 높다(Table 8로 발표자가 보간한 추정). 차이가 크진 않지만 Probe&amp;Prefill은 생각 토큰이 없어 빠르고 τ로 호출 수를 조절할 수 있다. 논문 표현은 "대부분의 경우 Reason-then-Act보다 낫다"(§5.2).
     <b>숫자 정리</b> 38%와 1.7%p는 τ=0.5에서 모델 6개 평균(기준: 지시 없는 기본 설정). 모델별로는 편차가 커서 Llama-3.1-8B는 −9.8%p. 이전 버전(v1) 초록은 48%로 적혀 있었는데 v4에서 38%로 바뀌었다. 예전 자료를 본 사람이 있으면 짚어 줄 것. SFT 결과가 재밌다: 900개로 학습하면 정확도는 +2–3%p 오르지만(부록 H.1) 호출 결정 경계는 못 배운다. 6,000개로 늘려도 +0.8%p에 호출은 오히려 늘었다(부록 H.2).
