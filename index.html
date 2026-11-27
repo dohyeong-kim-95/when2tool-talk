@@ -70,6 +70,11 @@ p sup.fn, li sup.fn, span sup.fn, h3 sup.fn { font-size: .62em; vertical-align: 
 .pv-tokens { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
 .pv-tokens span { font-size: 15px; padding: 3px 7px; border-radius: 5px; background: #eef0f4; border: 1.5px solid transparent; }
 .pv-tokens span.last { border-color: var(--s-probe); background: #e3f6ee; font-weight: 700; }
+.pv-tokens span { cursor: pointer; transition: opacity .25s, box-shadow .2s; }
+.pv-tokens span.hid { opacity: 0; }
+.pv-tokens span.sel { box-shadow: 0 0 0 2.5px var(--ink); }
+#pv-net circle { transition: fill .35s; }
+.pv-cap .tk { font-weight: 700; color: var(--ink); }
 #pv-net { width: 100%; height: auto; display: block; }
 .pv-vec { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
 .pv-vec i { display: block; aspect-ratio: 1; border-radius: 2px; transition: background .4s; }
@@ -511,13 +516,13 @@ aside.notes { display: none; }
       <div class="pv-panel" data-s="1">
         <b>1. 문제를 읽는다</b>
         <div class="pv-tokens" id="pv-tokens"></div>
-        <p class="pv-cap">프롬프트를 한 번 통과시킨다. 답을 쓰기 전에 원래 하는 계산이다.</p>
+        <p class="pv-cap">프롬프트를 한 번 통과시킨다. 답을 쓰기 전에 원래 하는 계산이다. 토큰을 누르면 그 토큰의 hidden state를 볼 수 있다.</p>
       </div>
       <div class="pv-arrow">→</div>
       <div class="pv-panel" data-s="2">
-        <b>2. 마지막 토큰의 hidden state</b>
+        <b id="pv-net-t">2. 마지막 토큰의 hidden state</b>
         <svg id="pv-net" viewBox="0 0 240 206" aria-hidden="true"></svg>
-        <p class="pv-cap">세로 한 줄이 레이어 하나, 점이 유닛. 점의 색이 마지막 토큰을 읽었을 때 그 유닛의 값이다.</p>
+        <p class="pv-cap" id="pv-net-cap"></p>
       </div>
       <div class="pv-arrow">→</div>
       <div class="pv-panel" data-s="3">
@@ -1222,17 +1227,24 @@ aside.notes { display: none; }
       var c0 = [238, 240, 244], c1 = v < 0 ? [29, 33, 53] : [255, 210, 63];
       return "rgb(" + c0.map(function (c, k) { return Math.round(c + (c1[k] - c) * a); }).join(",") + ")";
     }
-    var qi = 0, stepN = 4, tmr = [];
+    var qi = 0, stepN = 4, tmr = [], rd = [], reading = false, HS = [], toks = [], sel = 0;
     var qBox = document.getElementById("pv-q");
     qBox.innerHTML = QS.map(function (q, i) { return '<button data-i="' + i + '">' + q.label + "</button>"; }).join("");
     function render() {
       var q = QS[qi];
       Array.prototype.forEach.call(qBox.querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === qi ? "true" : "false"); });
-      var toks = q.text.replace("?", " ?").split(" ");
-      document.getElementById("pv-tokens").innerHTML = toks.map(function (t, i) { return '<span class="nw' + (i === toks.length - 1 ? " last" : "") + '">' + t + "</span>"; }).join("");
-      // hidden state: noise + signal aligned with W, sign set by how "tool-needy" the question is
-      var r = rng(101 + qi * 31), H = [], z = 0, sgn = q.p - 0.5;
-      for (var i = 0; i < N; i++) { var h = (r() - 0.5) * 1.1 + W[i] * sgn * 1.6; h = Math.max(-1, Math.min(1, h)); H.push(h); }
+      toks = q.text.replace("?", " ?").split(" ");
+      var last = toks.length - 1;
+      document.getElementById("pv-tokens").innerHTML = toks.map(function (t, i) { return '<span class="nw' + (i === last ? " last" : "") + '" data-t="' + i + '" title="이 토큰의 hidden state 보기">' + t + "</span>"; }).join("");
+      // hidden state per token: noise + a tool-necessity signal that builds up as more of the question is read.
+      // The last token's state is the one the probe uses.
+      var sgn = q.p - 0.5, z = 0;
+      HS = toks.map(function (t, i) {
+        var r = i === last ? rng(101 + qi * 31) : rng(500 + qi * 97 + i * 13), frac = i === last ? 1 : 0.8 * (i + 1) / toks.length, out = [];
+        for (var k = 0; k < N; k++) { var h = (r() - 0.5) * 1.1 + W[k] * sgn * 1.6 * frac; out.push(Math.max(-1, Math.min(1, h))); }
+        return out;
+      });
+      var H = HS[last];
       // dense-layer picture: columns = layers, dots = units, every adjacent pair fully connected
       var net = document.getElementById("pv-net"), nx = function (l) { return 14 + l * (212 / (LAYERS - 1)); }, ny = function (u) { return 12 + u * (166 / (UNITS - 1)); };
       var lines = "", dots = "";
@@ -1242,6 +1254,7 @@ aside.notes { display: none; }
         dots += '<circle cx="' + nx(l2) + '" cy="' + ny(u).toFixed(1) + '" r="5.5" fill="' + col(H[l2 * UNITS + u]) + '" stroke="rgba(29,33,53,.35)" stroke-width=".8"/>';
       net.innerHTML = '<path d="' + lines + '" stroke="#b9bfcc" stroke-width=".5" stroke-opacity=".28" fill="none"/>' + dots +
         '<text x="4" y="202" font-size="11" fill="#6b7189">레이어 1</text><text x="236" y="202" font-size="11" fill="#6b7189" text-anchor="end">레이어 8</text>';
+      showTok(last);
       document.getElementById("pv-hv").innerHTML = H.map(function (h) { return '<i style="background:' + col(h) + '"></i>'; }).join("");
       document.getElementById("pv-w").innerHTML = W.map(function (w) { return '<i style="background:' + col(w) + '"></i>'; }).join("");
       z = Math.log(q.p / (1 - q.p));
@@ -1263,24 +1276,67 @@ aside.notes { display: none; }
       keepWords(document.getElementById("pv-z")); keepWords(pf);
       paint();
     }
+    function showTok(i) {
+      sel = i;
+      var H = HS[i], last = toks.length - 1;
+      Array.prototype.forEach.call(document.querySelectorAll("#pv-net circle"), function (c, k) { c.setAttribute("fill", col(H[k])); });
+      Array.prototype.forEach.call(document.querySelectorAll("#pv-tokens span[data-t]"), function (sp) { sp.classList.toggle("sel", +sp.dataset.t === i); });
+      document.getElementById("pv-net-t").textContent = i === last ? "2. 마지막 토큰의 hidden state" : "2. '" + toks[i] + "' 토큰의 hidden state";
+      var cap = document.getElementById("pv-net-cap");
+      cap.innerHTML = "세로 한 줄이 레이어, 점이 유닛. 지금 색은 <span class=\"tk\">" + toks[i].replace(/</g, "&lt;") + "</span> 토큰을 읽은 순간의 값." +
+        (i === last ? " probe는 이 마지막 토큰만 쓴다." : " probe가 쓰는 건 마지막 토큰.");
+      keepWords(cap);
+    }
+    function revealAll() {
+      rd.forEach(clearTimeout); rd = []; reading = false;
+      Array.prototype.forEach.call(document.querySelectorAll("#pv-tokens span[data-t]"), function (sp) { sp.classList.remove("hid"); });
+    }
+    function read(then) { // tokens appear one by one; the network recolors to each token's hidden state
+      revealAll();
+      var spans = document.querySelectorAll("#pv-tokens span[data-t]");
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { showTok(toks.length - 1); if (then) then(); return; }
+      reading = true;
+      Array.prototype.forEach.call(spans, function (sp) { sp.classList.add("hid"); });
+      Array.prototype.forEach.call(spans, function (sp, i) {
+        rd.push(setTimeout(function () { sp.classList.remove("hid"); showTok(i); }, 250 + i * 550));
+      });
+      rd.push(setTimeout(function () { reading = false; paint(); if (then) then(); }, 250 + spans.length * 550 + 150));
+    }
     function paint() {
       Array.prototype.forEach.call(document.querySelectorAll("#probe-slide .pv-panel"), function (p) {
-        var k = +p.dataset.s; p.classList.toggle("on", k <= stepN); p.classList.toggle("now", k === stepN && stepN < 4);
+        var k = +p.dataset.s, on = k <= stepN || (reading && k === 2);
+        p.classList.toggle("on", on); p.classList.toggle("now", (k === stepN && stepN < 4) || (reading && k === 1));
       });
       document.getElementById("pv-next").disabled = stepN >= 4;
     }
     function start(auto) {
       tmr.forEach(clearTimeout); tmr = [];
-      stepN = 1; paint();
-      if (auto && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        [2, 3, 4].forEach(function (k, j) { tmr.push(setTimeout(function () { stepN = k; paint(); }, 900 * (j + 1))); });
-      } else if (auto) { stepN = 4; paint(); }
+      stepN = 1; reading = true; paint();
+      read(function () {
+        stepN = 2; paint();
+        if (!auto) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { stepN = 4; paint(); return; }
+        [3, 4].forEach(function (k, j) { tmr.push(setTimeout(function () { stepN = k; paint(); }, 900 * (j + 1))); });
+      });
     }
     qBox.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; qi = +b.dataset.i; render(); start(true); });
-    document.getElementById("pv-next").addEventListener("click", function () { tmr.forEach(clearTimeout); stepN = Math.min(4, stepN + 1); paint(); });
+    document.getElementById("pv-next").addEventListener("click", function () {
+      tmr.forEach(clearTimeout);
+      if (reading) { revealAll(); showTok(toks.length - 1); stepN = 2; } else stepN = Math.min(4, stepN + 1);
+      paint();
+    });
+    document.getElementById("pv-tokens").addEventListener("click", function (e) {
+      var sp = e.target.closest("span[data-t]"); if (!sp) return;
+      e.stopPropagation(); tmr.forEach(clearTimeout); revealAll();
+      showTok(+sp.dataset.t); stepN = Math.max(stepN, 2); paint();
+    });
     document.getElementById("pv-replay").addEventListener("click", function () { start(false); });
     Array.prototype.forEach.call(document.querySelectorAll("#probe-slide .pv-panel"), function (p) {
-      p.addEventListener("click", function () { tmr.forEach(clearTimeout); stepN = +p.dataset.s; paint(); });
+      p.addEventListener("click", function () {
+        tmr.forEach(clearTimeout);
+        if (reading) { revealAll(); showTok(toks.length - 1); }
+        stepN = +p.dataset.s; paint();
+      });
     });
     render();
     return { enter: function () { start(false); } };
