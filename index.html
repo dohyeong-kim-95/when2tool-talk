@@ -233,7 +233,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .term-def { font-family: var(--body); font-weight: 400; letter-spacing: 0; }
 .term-def b { font-weight: 700; }
 h2 .term { text-underline-offset: 8px; text-decoration-thickness: 2px; }
-.term-def code { font-size: 13px; background: rgba(255,255,255,.12); padding: 0 4px; border-radius: 3px; color: #fff; }
+.term-def code { white-space: nowrap; font-size: 13px; background: rgba(255,255,255,.12); padding: 0 4px; border-radius: 3px; color: #fff; }
 .term:hover .term-def, .term:focus .term-def { opacity: 1; visibility: visible; }
 .term:focus-visible { box-shadow: 0 0 0 2px var(--tape); border-radius: 2px; }
 .quiz-sum { margin-top: 14px; font-size: 20px; min-height: 30px; }
@@ -633,7 +633,7 @@ aside.notes { display: none; }
           <button data-c="1">콜라츠 27 (어려움)</button>
         </div>
         <div class="chat" id="pp-chat"></div>
-        <p class="muted" style="font-size:14px; margin-top:auto">p 값은 설명용. 문제는 논문 DateTimeEnv·CodeExecutorEnv 예시, 콜라츠 27의 정답은 111단계.</p>
+        <p class="muted" style="font-size:14px; margin-top:auto">p 값은 설명용. 문제는 논문 <span class="term term-left" tabindex="0">DateTimeEnv<span class="term-def" role="tooltip"><b>DateTimeEnv</b> (부록 A.5.2)<br>날짜 계산 환경. 범주는 "실행 추적".<br>도구: <code>date_add</code>, <code>date_diff</code>, <code>day_of_week</code><br>쉬움: 같은 달 안에서 세기 (1월 3일→18일)<br>중간: 달·해를 넘김, 윤년 (2024년 2월 25일→3월 10일)<br>어려움: 임의 날짜의 요일 (2027년 8월 15일)</span></span>·<span class="term term-left" tabindex="0">CodeExecutorEnv<span class="term-def wide" role="tooltip"><b>CodeExecutorEnv</b> (부록 A.5.3)<br>코드 출력 예측 환경. 범주는 "실행 추적".<br>도구: <code>run_python</code> (코드를 실행해 출력을 돌려줌)<br>쉬움: 한 줄 식 (<code>print(len('hello'))</code> → 5)<br>중간: 짧은 반복문·리스트 컴프리헨션 (<code>sum(x**2 for x in range(1,6))</code> → 55)<br>어려움: 재귀·DP·콜라츠처럼 10–30번 이상 반복 (콜라츠 27 → 111)</span></span> 예시, 콜라츠 27의 정답은 111단계.</p>
       </div>
       <div class="col" style="gap:18px">
         <div class="card"><h3>재학습 없음</h3><p>모델 가중치도, forward pass도 건드리지 않는다. 응답 앞부분만 미리 채운다(prefill).</p></div>
