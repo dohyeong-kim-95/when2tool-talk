@@ -155,6 +155,15 @@ sup.n { font-size: .7em; vertical-align: .5em; line-height: 0; margin-left: 1px;
 .mt-end { font-size: 14px; color: var(--ink-2); font-weight: 700; }
 .mt-out { display: flex; gap: 22px; font-size: 18px; font-variant-numeric: tabular-nums; }
 .mt-base { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bs-board { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 16px; align-content: center; padding: 4px 2px; }
+.bs-note { position: relative; background: #fff7cf; border: 1px solid #efd88a; border-radius: 4px; padding: 14px 14px 12px; box-shadow: 0 3px 8px rgba(29,33,53,.10); display: flex; flex-direction: column; gap: 5px; }
+.bs-note:nth-child(4n+1) { transform: rotate(-1.2deg); }
+.bs-note:nth-child(4n+2) { transform: rotate(0.8deg); background: #eaf4ff; border-color: #bcd6f3; }
+.bs-note:nth-child(4n+3) { transform: rotate(-0.5deg); background: #e8f7ef; border-color: #b6e2c9; }
+.bs-note:nth-child(4n) { transform: rotate(1.1deg); background: #fdeee6; border-color: #f2c7b0; }
+.bs-note::before { content: ""; position: absolute; top: -7px; left: 50%; width: 46px; height: 14px; margin-left: -23px; background: rgba(255,210,63,.75); border-radius: 2px; transform: rotate(-3deg); }
+.bs-note b { font-size: 15px; }
+.bs-note span { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
 .foot .ref { cursor: pointer; border-radius: 3px; text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .12s; }
 .foot .ref:hover, .foot .ref:focus-visible { text-decoration-color: currentColor; color: var(--ink); outline: none; }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
@@ -799,6 +808,30 @@ aside.notes { display: none; }
 </section>
 
 <!-- 15 · End -->
+<section class="slide" data-title="브레인스토밍">
+  <div class="body">
+    <h2>API 모델이면 이런 건 안 될까? <span class="tag">브레인스토밍 · 검증 안 됨</span></h2>
+    <div class="bs-board">
+<div class="bs-note"><b>확률값을 안 주는 API라면</b><span>"도구 없이 풀 수 있어?"를 5번 물어서 No가 나온 비율을 점수로 쓰면?</span></div>
+<div class="bs-note"><b>임베딩 API는 벡터를 준다</b><span>hidden state 대신 질문 임베딩에 로지스틱 회귀를 걸면 probe 비슷하게 될까?</span></div>
+<div class="bs-note"><b>작은 라우터</b><span>우리 로그로 "도구 없이 맞혔나" 라벨을 모아, 질문 텍스트만 보는 작은 분류기를 앞에 두면?</span></div>
+<div class="bs-note"><b>대리 모델</b><span>같은 계열 작은 오픈 모델의 hidden state로 큰 API 모델의 "도구 필요"를 예측할 수 있을까?</span></div>
+<div class="bs-note"><b>객관식 자신감</b><span>0–100점 대신 "쉬움 / 보통 / 어려움" 중 고르게 하면 점수가 덜 뭉칠까?</span></div>
+<div class="bs-note"><b>prefill이 안 되면</b><span>질문마다 시스템 프롬프트 끝에 "이번엔 직접 답해" 한 줄을 넣다 뺐다 하면?</span></div>
+<div class="bs-note"><b>2단계 호출</b><span>처음엔 도구를 빼고 답하게 한 뒤, "자신 없음"이라고 할 때만 도구를 열어 주면?</span></div>
+<div class="bs-note"><b>도구 설명에 적기</b><span>도구 description에 "이런 질문엔 부르지 마"를 쓰는 건 "아껴 써" 프롬프트와 뭐가 다를까?</span></div>
+<div class="bs-note"><b>가격표 보여 주기</b><span>"검색 한 번에 $0.01"처럼 비용을 숫자로 알려 주면 "아껴 써"보다 나을까?</span></div>
+<div class="bs-note"><b>캐시</b><span>비슷한 질문이 반복되는 서비스라면 "도구 필요 여부"만 캐시해 두면?</span></div>
+<div class="bs-note"><b>틀려도 되는 질문</b><span>틀리면 큰일 나는 질문과 아닌 질문을 나눠서 τ를 다르게 두면?</span></div>
+<div class="bs-note"><b>최신 모델은?</b><span>에이전트 RL로 학습한 요즘 모델은 과잉 호출을 덜 할까, 더 할까?</span></div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">근거 없음. 발표자가 우다다 던지는 질문들</span><span class="pg"></span></div>
+  <aside class="notes">
+    책임지지 않는 슬라이드. 청중에게 "이 중에 해 본 거 있으세요?" 또는 "제일 될 것 같은 거 하나만 고르면?"을 묻고 토론으로 넘긴다. 배경: 최신 추론형 API 모델은 토큰 확률(logprobs)을 안 주는 경우가 많아서 self-ask를 논문 그대로 쓰기 어렵다.
+  </aside>
+</section>
+
 <section class="slide" data-title="마무리">
   <div class="statement">
     <div>
