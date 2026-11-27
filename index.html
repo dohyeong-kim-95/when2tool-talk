@@ -149,6 +149,11 @@ sup.n { font-size: .7em; vertical-align: .5em; line-height: 0; margin-left: 1px;
 .rta-grid .acc { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 15px; }
 .rta-grid .acc .d { color: var(--muted); font-size: 13.5px; }
 .rta-grid .acc .d.bad { color: #b3401a; font-weight: 700; }
+.mini-tau { display: flex; flex-direction: column; gap: 6px; }
+.mt-row { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.mt-row input { width: 100%; accent-color: var(--ink); }
+.mt-out { display: flex; gap: 22px; font-size: 18px; font-variant-numeric: tabular-nums; }
+.mt-base { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .foot .ref { cursor: pointer; border-radius: 3px; text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .12s; }
 .foot .ref:hover, .foot .ref:focus-visible { text-decoration-color: currentColor; color: var(--ink); outline: none; }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
@@ -638,12 +643,17 @@ aside.notes { display: none; }
       </div>
       <div class="col" style="gap:18px">
         <div class="card"><h3>재학습 없음</h3><p>SFT처럼 모델 가중치를 바꾸지 않고,<br>추론 중 hidden state 값도 고치지 않는다.<br>답의 첫 문장만 대신 써 넣는다(prefill).</p></div>
-        <div class="card"><h3>τ 하나로 조절</h3><p>p를 자르는 문턱값 τ를 올릴수록 "혼자 풀 수 있음" 판정이 늘어 호출이 준다. 프롬프트와 달리 원하는 만큼 돌릴 수 있는 손잡이 (Qwen 기준).</p></div>
+        <div class="card"><h3>τ 하나로 조절</h3>
+          <div class="mini-tau">
+            <label class="mt-row"><span>τ = <b id="mt-v">0.5</b></span><input type="range" id="mt" min="0" max="4" step="1" value="2" aria-label="문턱값 τ"></label>
+            <div class="mt-out"><span>정확도 <b id="mt-acc"></b></span><span>도구 호출 <b id="mt-tc"></b></span></div>
+            <div class="mt-base" id="mt-base"></div>
+          </div></div>
         <div class="card"><h3>soft와 hard</h3><p>soft는 문장만 넣어서 모델이 반대할 여지를 둔다. 지시를 잘 안 듣는 Llama에는 출력 형식 자체를 강제하는 hard prefill이 필요했다.</p></div>
       </div>
     </div>
   </div>
-  <div class="foot"><span class="src">§5.1, 부록 E.1</span><span class="pg"></span></div>
+  <div class="foot"><span class="src">§5.1, 부록 E.1, Table 8 (τ 예시는 Qwen3-14B, soft prefill, 2,250문제)</span><span class="pg"></span></div>
   <aside class="notes">
     <b>방법</b> 3단계: hidden state 뽑기 → probe로 p 계산, τ와 비교 → 첫 문장 prefill. 다른 steering 기법(activation addition 등)과 달리 forward pass를 안 건드리니 어떤 서빙 인프라에도 붙는다. hard prefill은 직답이면 "\boxed{", 도구면 tool-call JSON의 시작 부분을 강제로 채운다.
   </aside>
@@ -901,6 +911,18 @@ aside.notes { display: none; }
     "Llama-3.1-8B": [[69.2,3027],[68.9,2770],[69.7,2381],[66.5,2146],[61.7,1753]],
     "Llama-3.3-70B":[[88.4,2976],[88.6,2902],[88.3,2871],[88.6,2828],[89.2,2804]]
   };
+  (function miniTau() {
+    var r = document.getElementById("mt"); if (!r) return;
+    var M = "Qwen3-14B", base = PO[M][1];
+    document.getElementById("mt-base").textContent = "probe 없이 기본: 정확도 " + base[0].toFixed(1) + "% · 호출 " + base[1].toLocaleString("en-US") + "번";
+    function upd() {
+      var d = PP[M][+r.value];
+      document.getElementById("mt-v").textContent = TAUS[+r.value].toFixed(1);
+      document.getElementById("mt-acc").textContent = d[0].toFixed(1) + "%";
+      document.getElementById("mt-tc").textContent = d[1].toLocaleString("en-US") + "번";
+    }
+    r.addEventListener("input", upd); upd();
+  })();
   /* Table 3 */
   var AUROC = [
     ["Qwen3-1.7B", 0.894, 0.864, 0.831, 0.904],
