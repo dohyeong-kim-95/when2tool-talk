@@ -1263,7 +1263,7 @@ aside.notes { display: none; }
       document.getElementById("pv-hv").innerHTML = H.map(function (h) { return '<i style="background:' + col(h) + '"></i>'; }).join("");
       document.getElementById("pv-w").innerHTML = W.map(function (w) { return '<i style="background:' + col(w) + '"></i>'; }).join("");
       z = Math.log(q.p / (1 - q.p));
-      document.getElementById("pv-z").innerHTML = "w와 h를 곱해 더하면 <b>z = " + z.toFixed(1) + "</b>, 시그모이드로 0~1. w 학습법은 다음 장.";
+      document.getElementById("pv-z").innerHTML = "z = w·h + b = <b>" + z.toFixed(1).replace("-", "−") + "</b><br>σ(z) = <b>" + q.p.toFixed(2) + "</b>";
       // sigmoid
       var svg = document.getElementById("pv-sig"), Wd = 240, Hd = 100, x = function (v) { return 10 + (v + 6) / 12 * (Wd - 20); }, y = function (v) { return 8 + (1 - v) * (Hd - 28); };
       var d = ""; for (var t = -6; t <= 6.01; t += 0.25) d += (t === -6 ? "M" : "L") + x(t).toFixed(1) + "," + y(1 / (1 + Math.exp(-t))).toFixed(1);
