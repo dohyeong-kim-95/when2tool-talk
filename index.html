@@ -228,6 +228,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   font-size: 15px; line-height: 1.5; padding: 10px 14px; border-radius: 8px; white-space: normal; text-align: left;
   opacity: 0; visibility: hidden; transition: opacity .12s; z-index: 6; box-shadow: 0 6px 18px rgba(29,33,53,.18); }
 .term-left .term-def { right: auto; left: -8px; }
+.term-def.wide { width: 540px; }
 .term-below .term-def { right: auto; left: -8px; bottom: auto; top: calc(100% + 12px); width: 560px; }
 .term-def { font-family: var(--body); font-weight: 400; letter-spacing: 0; }
 .term-def b { font-weight: 700; }
@@ -546,7 +547,7 @@ aside.notes { display: none; }
         <div class="pv-prefill" id="pv-prefill"></div>
       </div>
     </div>
-    <p class="pv-facts"><b>학습</b> (질문 N개, 논문은 900개): 모델 실행 N번 + 프롬프트 통과 N번 + 로지스틱 회귀(CPU 몇 초) &nbsp;|&nbsp; <b>추론</b>: 질문마다 추가 시간 &lt; 0.7ms<sup class="fn">1</sup></p>
+    <p class="pv-facts"><b>학습</b> (질문 N개, <span class="term term-left" tabindex="0">논문은 900개<span class="term-def wide" role="tooltip"><b>학습 900개 = 단일 환경 15개 × 난이도 3단계 × 20문제</b> (Table 5)<br>계산 규모: 계산기 · 통계 · 경우의 수 · 행렬 · 소수<br>지식 경계: 검색 · 역사 연도 · 게임 규칙 · 해시 · 암호 해독<br>실행 추적: 리스트 조작 · 날짜 · 코드 실행 · 일정 · 정규식<br>라벨: 그 모델이 도구 없이 풀어 맞히면 "불필요", 틀리면 "필요". 모델마다 따로 붙인다.<br>평가는 같은 환경에서 만든 다른 문제 2,250개.</span></span>): 모델 실행 N번 + 프롬프트 통과 N번 + 로지스틱 회귀(CPU 몇 초) &nbsp;|&nbsp; <b>추론</b>: 질문마다 추가 시간 &lt; 0.7ms<sup class="fn">1</sup></p>
     <div class="gloss" style="margin-top:10px; padding:10px 16px">
       <p><b>AUROC</b> (이 probe의 성적, 논문 0.89–0.96): 도구가 필요한 문제와 아닌 문제를 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
       <button class="jump" data-goto="A1">자세히 (부록 A1)</button>
