@@ -694,7 +694,7 @@ aside.notes { display: none; }
     <h2>성적표: 평균 호출 38% 감소, 정확도는 1.7%p만 내줬다</h2>
     <div class="row" style="flex:1; gap:48px">
       <div class="col" style="flex:1.1; min-height:0">
-        <h3>호출 하나 줄일 때마다 잃는 정확도 (%p, 6개 모델 평균)</h3>
+        <h3>호출 하나 줄일 때마다 잃는 정확도 (%p, 6개 모델 평균, Llama 포함)</h3>
         <div class="legend" id="lg-cost"></div>
         <div class="chart-wrap" id="chart-cost"></div>
       </div>
@@ -708,6 +708,7 @@ aside.notes { display: none; }
   <p class="footnote"><sup>1</sup> Search-o1: 추론 중 웹 검색을 부르는 에이전트(EMNLP 2025). 그 평가에 쓰인 기존 QA 6종으로 실험. &nbsp;<sup>2</sup> 2WikiMultihopQA: 위키 문서 둘을 이어 찾는 질문 (예: 영화 X 감독의 출생지).<br><sup>3</sup> MuSiQue: 최대 4번 이어 찾아야 하는 질문 모음 (논문 표현은 3–4홉). &nbsp;<sup>4</sup> SFT: 정답 과정(직답 또는 도구 호출)을 따라 하도록 가중치를 미세조정. LoRA: 작은 행렬(rank 16)만 덧붙여 학습하는 가벼운 버전.</p>
   <div class="foot"><span class="src">초록, §5.2 Table 4 (τ=0.5), 부록 G Table 18, 부록 H Table 22</span><span class="pg"></span></div>
   <aside class="notes">
+    주황 막대("아껴 써" + 먼저 생각하기)는 Table 4의 6개 모델 평균이라 Reason-then-Act에서 무너진 Llama 두 개가 섞여 있다. Qwen만 보면 Reason-then-Act도 꽤 괜찮다. 그래도 같은 호출 수에서 맞춰 보면 Probe&amp;Prefill이 0.8–2.1%p 높다(Table 8로 발표자가 보간한 추정). 차이가 크진 않지만 Probe&amp;Prefill은 생각 토큰이 없어 빠르고 τ로 호출 수를 조절할 수 있다. 논문 표현은 "대부분의 경우 Reason-then-Act보다 낫다"(§5.2).
     <b>숫자 정리</b> 38%와 1.7%p는 τ=0.5에서 모델 6개 평균(기준: 지시 없는 기본 설정). 모델별로는 편차가 커서 Llama-3.1-8B는 −9.8%p. 이전 버전(v1) 초록은 48%로 적혀 있었는데 v4에서 38%로 바뀌었다. 예전 자료를 본 사람이 있으면 짚어 줄 것. SFT 결과가 재밌다: 900개로 학습하면 정확도는 +2–3%p 오르지만(부록 H.1) 호출 결정 경계는 못 배운다. 6,000개로 늘려도 +0.8%p에 호출은 오히려 늘었다(부록 H.2).
   </aside>
 </section>
@@ -934,7 +935,7 @@ aside.notes { display: none; }
     ["Llama-3.3-70B", 0.936, 0.906, 0.849, 0.956]
   ];
   /* Table 4: accuracy cost per saved call, 6-model average, relative to Default */
-  var COST = { levels: ["쉬움", "중간", "어려움"], sparse: [-11.3, -16.9, -31.5], probe: [-1.6, -6.2, -3.4] };
+  var COST = { levels: ["쉬움", "중간", "어려움"], sparse: [-11.3, -16.9, -31.5], rta: [-8.8, -19.1, -34.7], probe: [-1.6, -6.2, -3.4] };
 
   var SER = {
     po: { name: "Prompt-only (프롬프트만)", color: "var(--s-prompt)", shape: "circle" },
@@ -1108,22 +1109,22 @@ aside.notes { display: none; }
 
   /* ---------- slide 12: cost per saved call, grouped bars from zero ---------- */
   (function () {
-    legend("lg-cost", ["po", "pp"]);
-    document.getElementById("lg-cost").innerHTML = document.getElementById("lg-cost").innerHTML.replace("Prompt-only (프롬프트만)", "\"아껴 써\" 프롬프트");
+    legend("lg-cost", ["po", "rta", "pp"]);
+    document.getElementById("lg-cost").innerHTML = document.getElementById("lg-cost").innerHTML.replace("Prompt-only (프롬프트만)", "\"아껴 써\" 프롬프트").replace("Reason-then-Act (생각하고 행동)", "\"아껴 써\" + 먼저 생각하기");
     var host = document.getElementById("chart-cost");
     var W = 560, H = 330, L = 70, R = 20, T = 10, B = 40;
-    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "절감 호출당 정확도 비용. 아껴 써 프롬프트 쉬움 -11.3 중간 -16.9 어려움 -31.5, Probe&Prefill 쉬움 -1.6 중간 -6.2 어려움 -3.4" }, host);
-    var y = function (v) { return T + (-v / 35) * (H - T - B); };
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "절감 호출당 정확도 비용. 아껴 써 프롬프트 쉬움 -11.3 중간 -16.9 어려움 -31.5, 아껴 써 더하기 먼저 생각하기 쉬움 -8.8 중간 -19.1 어려움 -34.7, Probe&Prefill 쉬움 -1.6 중간 -6.2 어려움 -3.4" }, host);
+    var y = function (v) { return T + (-v / 40) * (H - T - B); };
     [0, -10, -20, -30].forEach(function (v) {
       el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0 ? "#4a5068" : "#e6e9ef", "stroke-width": v === 0 ? 1.5 : 1 }, svg);
       el("text", { x: L - 10, y: y(v) + 5, "text-anchor": "end", "font-size": 14, fill: "#6b7189" }, svg).textContent = v;
     });
-    var gw = (W - L - R) / 3, bw = 54;
+    var gw = (W - L - R) / 3, bw = 42;
     COST.levels.forEach(function (lv, i) {
       var cx = L + gw * i + gw / 2;
-      [["sparse", "var(--s-prompt)", -1], ["probe", "var(--s-probe)", 1]].forEach(function (s) {
+      [["sparse", "var(--s-prompt)", -1], ["rta", "var(--s-rta)", 0], ["probe", "var(--s-probe)", 1]].forEach(function (s) {
         var v = COST[s[0]][i];
-        var bx = cx + (s[2] < 0 ? -bw - 1 : 1);
+        var bx = cx - bw / 2 + s[2] * (bw + 2);
         var h = y(v) - y(0);
         el("path", { d: "M" + bx + "," + y(0) + "h" + bw + "v" + (h - 4) + "q0,4 -4,4h" + (-(bw - 8)) + "q-4,0 -4,-4z", fill: s[1] }, svg);
         el("text", { x: bx + bw / 2, y: y(v) + 20, "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#1d2135" }, svg).textContent = v;
