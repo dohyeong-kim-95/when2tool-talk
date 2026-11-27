@@ -125,6 +125,21 @@ sup.n { font-size: .7em; vertical-align: .5em; line-height: 0; margin-left: 1px;
 .tr-fit.on { opacity: 1; }
 .tr-fit-l { font-size: 15px; font-weight: 700; }
 .tr-fit-r { font-size: 14px; color: var(--ink-2); }
+.rta-legend { display: flex; gap: 18px; font-size: 14px; color: var(--ink-2); }
+.rta-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.rta-legend .k-before { background: #e3e6eb; border: 1px solid #c9ced8; }
+.rta-legend .k-after { background: #eb6834; }
+.rta-grid { display: grid; grid-template-columns: 112px 1fr 168px; column-gap: 12px; row-gap: 7px; align-items: center; font-size: 15.5px; }
+.rta-grid .hd { font-size: 13px; color: var(--muted); font-weight: 700; }
+.rta-grid .m { font-weight: 700; }
+.rta-grid .m.llama { color: #b3401a; }
+.rta-grid .bars { position: relative; height: 18px; }
+.rta-grid .bars .b0 { position: absolute; left: 0; top: 0; bottom: 0; background: #e3e6eb; border: 1px solid #c9ced8; border-radius: 0 3px 3px 0; }
+.rta-grid .bars .b1 { position: absolute; left: 0; top: 4px; bottom: 4px; background: #eb6834; border-radius: 0 3px 3px 0; min-width: 2px; }
+.rta-grid .bars .lbl { position: absolute; top: -1px; font-size: 13px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rta-grid .acc { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 15px; }
+.rta-grid .acc .d { color: var(--muted); font-size: 13.5px; }
+.rta-grid .acc .d.bad { color: #b3401a; font-weight: 700; }
 .foot .ref { cursor: pointer; border-radius: 3px; text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .12s; }
 .foot .ref:hover, .foot .ref:focus-visible { text-decoration-color: currentColor; color: var(--ink); outline: none; }
 .foot .src::before { content: "출처 "; font-weight: 700; color: var(--ink-2); }
@@ -440,8 +455,8 @@ aside.notes { display: none; }
 <section class="slide" data-title="생각하고 행동하기">
   <div class="body">
     <h2>시도 2: "먼저 생각해 보고 행동해"<sup class="fn">1</sup></h2>
-    <div class="row" style="flex:1">
-      <div class="col">
+    <div class="row" style="flex:1; gap:36px">
+      <div class="col" style="flex:0.8">
         <div class="chat">
           <div class="msg user"><span class="who">시스템</span>행동하기 전에, 직접 풀 수 있는지 도구가 필요한지 먼저 판단하세요.</div>
           <div class="msg bot"><span class="who">Llama-3.1-8B</span>이 문제는 숫자가 크니까, 계산기 도구를 사용하는 게 좋겠습니다. 계산기로 계산해 보겠습니다.</div>
@@ -449,16 +464,11 @@ aside.notes { display: none; }
         </div>
         <p class="small muted">대화는 연출. 논문 표현: "도구를 부르겠다고 말만 하고 올바른 호출은 만들지 않는다."</p>
       </div>
-      <div class="col" style="gap:22px; justify-content:center">
-        <div class="card">
-          <h3>Llama-3.1-8B</h3>
-          <p>정확도 <b class="num">79.5% → 31.2%</b><br>도구 호출 <b class="num">3,708번 → 2번</b></p>
-        </div>
-        <div class="card">
-          <h3>Llama-3.3-70B</h3>
-          <p>정확도 <b class="num">83.1% → 47.9%</b><br>도구 호출 <b class="num">4,377번 → 0번</b></p>
-        </div>
-        <p class="small">Qwen에서는 쉬운 문제의 낭비가 조금 줄지만, 어려운 문제 비용은 여전하고 생각하는 토큰만큼 느려진다.</p>
+      <div class="col" style="flex:1.45; gap:8px; justify-content:center">
+        <h3>지시 없음 → "먼저 판단해" 추가 (모델 6개, 2,250문제)</h3>
+        <div class="rta-legend"><span><i class="k-before"></i>원래 호출 수</span><span><i class="k-after"></i>생각을 시킨 뒤 호출 수</span></div>
+        <div class="rta-grid" id="rta-grid"></div>
+        <p class="small" style="margin-top:6px">Qwen: 호출 24–52% 감소, 정확도 1–6%p 하락. 줄어든 호출엔 어려운 문제의 필요한 호출도 섞였다.<br>Llama: 도구를 아예 못 불러서 정확도가 무너졌다.</p>
       </div>
     </div>
   </div>
@@ -857,6 +867,21 @@ aside.notes { display: none; }
     "Llama-3.3-70B":[[42.4,0],[47.9,0],[47.6,0],[54.1,0],[54.8,0]]
   };
   var TAUS = [0.1, 0.3, 0.5, 0.7, 0.9];
+  (function drawRta() {
+    var g = document.getElementById("rta-grid"); if (!g) return;
+    var max = 4400, h = '<span class="hd">모델</span><span class="hd">도구 호출 (원래 → 생각 후)</span><span class="hd">정확도</span>';
+    var fmt = function (n) { return n.toLocaleString("en-US"); };
+    MODELS.forEach(function (m) {
+      var a = PO[m][1], b = RTA[m][1], llama = /Llama/.test(m);
+      var r = (1 - b[1] / a[1]) * 100, cut = (r > 99.5 && b[1] > 0) ? r.toFixed(1) : Math.round(r), dAcc = (b[0] - a[0]).toFixed(1);
+      h += '<span class="m' + (llama ? " llama" : "") + '">' + m + '</span>' +
+        '<div class="bars" title="' + m + ': 호출 ' + fmt(a[1]) + ' → ' + fmt(b[1]) + '번">' +
+        '<div class="b0" style="width:' + (a[1] / max * 56) + '%"></div><div class="b1" style="width:' + (b[1] / max * 56) + '%"></div>' +
+        '<span class="lbl" style="left:calc(' + (a[1] / max * 56) + '% + 8px)">' + fmt(a[1]) + ' → <b>' + fmt(b[1]) + '</b> (−' + cut + '%)</span></div>' +
+        '<span class="acc">' + a[0].toFixed(1) + ' → <b>' + b[0].toFixed(1) + '%</b> <span class="d' + (llama ? " bad" : "") + '">' + dAcc.replace("-", "−") + '%p</span></span>';
+    });
+    g.innerHTML = h;
+  })();
   var PP = {
     "Qwen3-1.7B":   [[88.8,2512],[89.0,2507],[88.3,2128],[81.6,1415],[47.9,293]],
     "Qwen3-4B":     [[91.1,2216],[90.4,1707],[88.5,1309],[84.8,1026],[74.7,657]],
