@@ -787,12 +787,11 @@ aside.notes { display: none; }
       </div>
       <div class="col card">
         <h3>3. <span class="term term-below-r" tabindex="0">API 모델이라면<span class="term-def wide" role="tooltip"><b>API 모델이라면</b> (부록 I)<br>hidden state를 꺼낼 수 없으니 다른 신호로 대신한다. 첫 문장 prefill은 그대로.<br>· self-ask: "도구 없이 풀 수 있어?"에 "No"라고 답할 확률<br>· 첫 토큰 확률: 답의 첫 토큰으로 도구 호출을 낼 확률<br>· 말로 한 자신감: 0–100점 자기 평가 (점수가 뭉쳐서 조절이 거칠었다)<span class="term-sep"></span>비슷한 호출 수(문제당 약 0.76번)에서 정확도<br>probe 90.4% · self-ask 87.1% · 첫 토큰 확률 85.6%<span class="term-sep"></span>주의: Qwen3-4B로 흉내 낸 실험이고 실제 API 모델 결과는 아니다. 확률값(logprobs)과 prefill 지원 여부는 API마다 다르다.</span></span></h3>
-        <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 self-ask<sup class="fn">1</sup>나 첫 토큰 확률<sup class="fn">1</sup>을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
+        <p>hidden state 대신 "도구 없이 풀 수 있어?"라고 묻는 <span class="term term-below-r" tabindex="0">self-ask<span class="term-def wide" style="width:660px" role="tooltip"><b>self-ask 단계별로 보면</b><br>1. 사용자 질문이 들어온다. 예: "50번째 소수는?"<br>2. 본 답변 전에 모델에게 따로 묻는다. 예: "다음 문제를 도구 없이 풀 수 있습니까? Yes 또는 No로 답하세요."<br>3. 모델이 내놓는 글자가 아니라 확률을 본다. "Yes"와 "No"에 각각 얼마를 줬는지. 예: Yes 0.3, No 0.6, 나머지 토큰 0.1<br>4. 둘만 놓고 비율로 바꾼다: No 점수 = 0.6 ÷ (0.3 + 0.6) ≈ 0.67. 이것이 "도구가 필요한 정도" 점수.<br>5. 점수를 기준선과 비교해 첫 문장을 정한다.<br>&nbsp;&nbsp;· 기준선보다 낮으면 → "I can solve this directly without using a tool."<br>&nbsp;&nbsp;· 높으면 → "I need to use a tool for this question."<br>6. 모델이 그 뒤를 이어서 답한다. 여기부터는 Probe&amp;Prefill과 똑같다.</span></span>나 첫 토큰 확률을 같은 prefill 자리에 꽂을 수 있다. 논문에서는 probe보다 약했다.</p>
       </div>
     </div>
     <p class="lead" style="margin-top:24px">그리고 "아껴 써" 한 줄로 해결하려 하지 말 것. Qwen에서는 어려운 문제부터 망가졌다.</p>
   </div>
-  <p class="footnote"><sup>1</sup> self-ask: "도구 없이 풀 수 있나?"에 모델이 "No"라고 답할 확률을 점수로 쓴다. 첫 토큰 확률: 답의 첫 토큰으로 도구 호출 토큰을 낼 확률. 둘 다 출력 확률만 있으면 되지만, 쓰는 API가 확률(logprobs)을 주는지는 확인해야 한다 (발표자 의견).</p>
   <div class="foot"><span class="src">제안은 발표자 의견. 근거: §3.2, 부록 I (Qwen3-4B, 비슷한 호출 수에서 probe 90.4% vs self-ask 87.1%)</span><span class="pg"></span></div>
   <aside class="notes">
     <b>토론 질문</b> "여러분 에이전트에서 본 가장 어이없는 도구 호출은?" 각자 사례를 모으면 재밌다. API 모델의 prefill 지원 여부와 logprob 제공 여부는 제공사와 모델마다 다르니 쓰기 전에 확인.
