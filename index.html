@@ -546,14 +546,14 @@ aside.notes { display: none; }
         <div class="pv-prefill" id="pv-prefill"></div>
       </div>
     </div>
-    <p class="pv-facts">학습 예시 <b>900개</b>, CPU에서 몇 초 (90개만 써도 AUROC 0.81 이상) · probe 입력 <b>94,720차원</b><sup class="fn">1</sup> (Qwen3-4B) · 추가 지연 <b>0.7ms 이하</b>, 추가 forward pass 없음<sup class="fn">2</sup></p>
+    <p class="pv-facts"><b>학습</b> (질문 N개, 논문은 900개): 모델 실행 N번 + 프롬프트 통과 N번 + 로지스틱 회귀(CPU 몇 초) &nbsp;|&nbsp; <b>추론</b>: 질문마다 추가 시간 &lt; 0.7ms<sup class="fn">1</sup></p>
     <div class="gloss" style="margin-top:10px; padding:10px 16px">
       <p><b>AUROC</b>: 도구가 필요한 문제와 아닌 문제를 probe가 얼마나 잘 가려내는지. 0.5는 동전 던지기, 1.0은 완벽.</p>
       <button class="jump" data-goto="A1">자세히 (부록 A1)</button>
     </div>
-    <p class="muted" style="margin-top:8px; font-size:13.5px">그림은 8 레이어 × 유닛 10개, 단어 단위 토큰으로 단순화한 설명용. <sup>1</sup> 실제 h = 레이어 37개 × hidden 크기 2,560. <sup>2</sup> 답을 쓰려면 어차피 하는 프롬프트 통과(KV 캐시 생성)에서 나온 값을 재활용한다.</p>
+    <p class="muted" style="margin-top:8px; font-size:13.5px">그림은 8 레이어 × 유닛 10개로 단순화한 설명용. 실제 h는 37 × 2,560 = 94,720개 숫자(Qwen3-4B). <sup>1</sup> 답을 쓰려면 어차피 하는 프롬프트 통과에서 나온 hidden state를 꺼내 쓰므로 모델을 더 돌리지 않는다.</p>
   </div>
-  <div class="foot"><span class="src">§4 Setup, §5.1 Step 1, Table 15, Table 17</span><span class="pg"></span></div>
+  <div class="foot"><span class="src">§4 Setup, §5.1 Step 1, Table 17</span><span class="pg"></span></div>
   <aside class="notes">
     <b>probe</b> = hidden state 위에 얹은 작은 분류기. "이 정보가 모델 안에 있는가"를 검사하는 청진기. 선형이라는 게 핵심: 복잡한 분류기가 정보를 만들어낸 게 아니라, 이미 정리된 형태로 들어 있다는 뜻. 비유가 필요하면: 센서값 수천 개로 불량을 예측하는 로지스틱 회귀.
   </aside>
