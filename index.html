@@ -701,7 +701,7 @@ aside.notes { display: none; }
       </div>
       <div class="col tight-cards" style="gap:8px">
         <div class="card"><h3>비슷한 정확도의 기존 방법 중 최선</h3><p>호출을 <b>4.2%</b>만 줄였다. 비슷하게 줄인 기존 방법은 정확도를 <b>5배</b> 더 잃었다.</p></div>
-        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1<sup class="fn">1</sup>, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">2</sup> 환경에서 probe를 학습한 경우<br>도구 호출 <b>56%</b> 감소, 정확도 <b>2.8%p</b> 증가 (36.4% → 39.2%)<br>MuSiQue<sup class="fn">3</sup>에선 "도구 필수" 프롬프트가 더 줄임 (−56% vs −48%)</p></div>
+        <div class="card"><h3>실제 검색 에이전트에서도 (Search-o1<sup class="fn">1</sup>, Qwen3-4B)</h3><p>2WikiMultihopQA<sup class="fn">2</sup> 환경에서 probe를 학습한 경우<br>도구 호출 <b>56%</b> 감소, 정확도 <b>2.8%p</b> 증가 (36.4% → 39.2%)<br>MuSiQue<sup class="fn">3</sup>에선 프롬프트가 더 줄임<br>(Prompt-only −56% vs Probe&amp;Prefill −48%)</p></div>
         <div class="card"><h3>fine-tuning으로 가르친 경우에도 도구 호출이 줄지 않았음</h3><p>조건: Qwen3-4B, 6,000개 질의응답 세트<br>SFT<sup class="fn">4</sup>: 문제당 0.94 → 0.998번<br>LoRA<sup class="fn">4</sup>: 문제당 0.94 → 0.937번</p></div>
       </div>
     </div>
