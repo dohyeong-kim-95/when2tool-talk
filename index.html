@@ -72,6 +72,10 @@ p sup.fn, li sup.fn, span sup.fn, h3 sup.fn { font-size: .62em; vertical-align: 
 .pv-tokens span.last { border-color: var(--s-probe); background: #e3f6ee; font-weight: 700; }
 .pv-tokens span { cursor: pointer; transition: opacity .25s, box-shadow .2s; }
 .pv-tokens span.hid { opacity: 0; }
+.pv-tokens span.next { min-width: 38px; background: transparent; border: 1.5px dashed var(--muted); cursor: default; color: var(--muted); text-align: center; }
+.pv-tokens span.next::after { content: "▍"; animation: pv-blink 1s steps(1) infinite; }
+@keyframes pv-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pv-tokens span.next::after { animation: none; } }
 .pv-tokens span.sel { box-shadow: 0 0 0 2.5px var(--ink); }
 #pv-net circle { transition: fill .35s; }
 .pv-cap .tk { font-weight: 700; color: var(--ink); }
@@ -1235,7 +1239,8 @@ aside.notes { display: none; }
       Array.prototype.forEach.call(qBox.querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === qi ? "true" : "false"); });
       toks = q.text.replace("?", " ?").split(" ");
       var last = toks.length - 1;
-      document.getElementById("pv-tokens").innerHTML = toks.map(function (t, i) { return '<span class="nw' + (i === last ? " last" : "") + '" data-t="' + i + '" title="이 토큰의 hidden state 보기">' + t + "</span>"; }).join("");
+      document.getElementById("pv-tokens").innerHTML = toks.map(function (t, i) { return '<span class="nw' + (i === last ? " last" : "") + '" data-t="' + i + '" title="이 토큰의 hidden state 보기">' + t + "</span>"; }).join("") +
+        '<span class="next" id="pv-next-tok" title="모델이 이제 생성할 다음 토큰 자리" aria-label="다음에 생성할 토큰 (아직 비어 있음)"></span>';
       // hidden state per token: noise + a tool-necessity signal that builds up as more of the question is read.
       // The last token's state is the one the probe uses.
       var sgn = q.p - 0.5, z = 0;
@@ -1290,6 +1295,7 @@ aside.notes { display: none; }
     function revealAll() {
       rd.forEach(clearTimeout); rd = []; reading = false;
       Array.prototype.forEach.call(document.querySelectorAll("#pv-tokens span[data-t]"), function (sp) { sp.classList.remove("hid"); });
+      document.getElementById("pv-next-tok").classList.remove("hid");
     }
     function read(then) { // tokens appear one by one; the network recolors to each token's hidden state
       revealAll();
@@ -1297,9 +1303,11 @@ aside.notes { display: none; }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { showTok(toks.length - 1); if (then) then(); return; }
       reading = true;
       Array.prototype.forEach.call(spans, function (sp) { sp.classList.add("hid"); });
+      document.getElementById("pv-next-tok").classList.add("hid");
       Array.prototype.forEach.call(spans, function (sp, i) {
         rd.push(setTimeout(function () { sp.classList.remove("hid"); showTok(i); }, 250 + i * 550));
       });
+      rd.push(setTimeout(function () { document.getElementById("pv-next-tok").classList.remove("hid"); }, 250 + spans.length * 550));
       rd.push(setTimeout(function () { reading = false; paint(); if (then) then(); }, 250 + spans.length * 550 + 150));
     }
     function paint() {
