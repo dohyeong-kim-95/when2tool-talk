@@ -441,7 +441,7 @@ aside.notes { display: none; }
         <div class="btns" id="modes-prompt"></div>
         <div class="quote" id="mode-quote"></div>
         <div class="readout"><div class="big" id="ro-prompt"></div><div class="lbl" id="ro-prompt-l"></div></div>
-        <p class="small">"필요할 때만"은 지시 없음과 거의 같은 자리. "아껴 써"는 쉬운 문제보다 <b>어려운 문제</b>에서 정확도를 더 잃는다. Qwen3-4B 기준, 호출 하나를 줄일 때 잃는 정확도가 어려운 문제에서 2.5배.</p>
+        <p class="small">"필요할 때만"은 지시 없음과 거의 같은 자리. "아껴 써"는 쉬운 문제보다 <b>어려운 문제</b>에서 정확도를 더 잃는다. Qwen3-14B 기준, 호출 하나를 줄일 때 잃는 정확도가 어려운 문제에서 약 4배 (쉬움 −14.9, 어려움 −58.4).</p>
       </div>
     </div>
   </div>
@@ -994,7 +994,7 @@ aside.notes { display: none; }
   }
 
   /* ---------- slide 5: prompt-only ---------- */
-  var promptState = { model: "Qwen3-4B", mode: 3 };
+  var promptState = { model: "Qwen3-14B", mode: 3 };
   function fillModelSelect(id, val, onChange) {
     var s = document.getElementById(id);
     s.innerHTML = MODELS.map(function (m) { return "<option" + (m === val ? " selected" : "") + ">" + m + "</option>"; }).join("");
